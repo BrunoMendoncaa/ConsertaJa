@@ -5,6 +5,7 @@ import { isValidCPF, isValidCNPJ, parseDocument, formatDocument } from '@/lib/do
 import { resolvePeriod, formatDate } from '@/lib/dates';
 import { friendlyMessage, DB_NOT_READY_MESSAGE } from '@/lib/errors';
 import { allowedCategories } from '@/features/finance/rules';
+import { warrantyDocument, warrantyTerms, DEFAULT_WARRANTY_TERMS } from '@/features/service-orders/warranty';
 
 describe('dinheiro', () => {
   it('converte formatos brasileiros para decimal com 2 casas', () => {
@@ -102,5 +103,30 @@ describe('permissões do caixa (espelho da policy)', () => {
     expect(allowedCategories('technician')).toContain('COMPRA_PECA');
     expect(allowedCategories('technician')).not.toContain('DESPESA_OPERACIONAL');
     expect(allowedCategories('owner')).toContain('DESPESA_OPERACIONAL');
+  });
+});
+
+describe('certificado de garantia', () => {
+  const entregue = { status: 'ENTREGUE', outcome: 'REPARADO', delivered_at: '2026-10-08T15:00:00Z', warranty_until: '2027-01-06' };
+
+  it('só existe depois da entrega', () => {
+    expect(warrantyDocument({ ...entregue, status: 'PRONTO' }, { warranty_days: 90 })).toBeNull();
+  });
+  it('reparado com prazo gera certificado com as datas', () => {
+    expect(warrantyDocument(entregue, { warranty_days: 90 }))
+      .toEqual({ kind: 'certificate', days: 90, startsAt: entregue.delivered_at, endsAt: '2027-01-06' });
+  });
+  it('sem orçamento carregado, calcula o prazo pelas datas', () => {
+    expect(warrantyDocument(entregue, null).days).toBe(90);
+  });
+  it('garantia zero e devolução sem reparo não geram certificado', () => {
+    expect(warrantyDocument({ ...entregue, warranty_until: null }, { warranty_days: 0 }).kind).toBe('no_warranty');
+    expect(warrantyDocument({ ...entregue, outcome: 'NAO_REPARADO_RECUSADO', warranty_until: null }, null).kind).toBe('pickup');
+  });
+  it('usa as condições da assistência, uma por linha, ou o padrão', () => {
+    expect(warrantyTerms('- Cobre a tela trocada\n\n2) 90 dias para defeitos de fábrica da peça')).toEqual([
+      'Cobre a tela trocada', '90 dias para defeitos de fábrica da peça',
+    ]);
+    expect(warrantyTerms('   ')).toBe(DEFAULT_WARRANTY_TERMS);
   });
 });

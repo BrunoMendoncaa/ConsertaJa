@@ -14,6 +14,7 @@ export function StatusPanel({ order, role, balance }) {
     EM_DIAGNOSTICO: 'Para pedir aprovação, monte e envie o orçamento: o status muda sozinho.',
     AGUARDANDO_APROVACAO: 'Aguardando o cliente aprovar ou recusar o orçamento (portal, balcão ou telefone).',
     EM_MANUTENCAO: 'Antes de concluir, descreva a solução aplicada em "Diagnóstico e solução".',
+    PRONTO: 'Na retirada, registre "Entregue": o prazo da garantia começa hoje e o certificado abre pronto para imprimir.',
   };
 
   return (

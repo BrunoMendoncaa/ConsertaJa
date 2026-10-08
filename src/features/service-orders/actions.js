@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { requireStaff } from '@/lib/auth';
 import { actionError } from '@/lib/errors';
 import { parseForm, z, optionalText, optionalUuid, uuid, phone, optionalPhone, email, document } from '@/lib/forms';
@@ -140,6 +141,8 @@ export async function changeStatus(id, _prev, formData) {
   revalidatePath(`/painel/os/${id}`);
   revalidatePath('/painel/os');
   revalidatePath('/painel');
+  // Na retirada, o próximo passo é imprimir o certificado de garantia (ou o termo de retirada).
+  if (to === 'ENTREGUE') redirect(`/painel/os/${id}/garantia`);
   return { ok: true, message: 'Status atualizado.' };
 }
 

@@ -40,4 +40,8 @@ body {
   @page {
     margin: 12mm;
   }
+  /* Documentos de uma página (certificado de garantia): letra um pouco menor no papel */
+  html:has(.print-compact) {
+    font-size: 14px;
+  }
 }

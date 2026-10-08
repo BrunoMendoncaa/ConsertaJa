@@ -61,7 +61,6 @@ export async function deleteItem(itemId, osId) {
 const headerSchema = z.object({
   discount_amount: optionalMoney(),
   surcharge_amount: optionalMoney(),
-  estimated_days: optionalInt(1, 365, 'Prazo entre 1 e 365 dias.'),
   warranty_days: optionalInt(0, 3650, 'Garantia entre 0 e 3650 dias.'),
   payment_terms: optionalText(500),
   customer_notes: optionalText(2000),
@@ -79,13 +78,34 @@ export async function updateDraftHeader(versionId, osId, _prev, formData) {
   return { ok: true, message: 'Condições salvas.' };
 }
 
+// O prazo do conserto é pedido junto com o envio (antes ficava só em "Condições"
+// e era fácil esquecer de salvar). Ele é gravado no rascunho e depois o envio
+// congela tudo; se o envio falhar por outro motivo, o prazo já fica salvo.
 export async function sendBudget(versionId, osId, _prev, formData) {
   const { supabase } = await requireStaff(TECH_ROLES);
-  const raw = String(formData.get('valid_days') || '').trim();
-  const validDays = raw ? Number(raw) : null;
-  if (validDays !== null && (!Number.isInteger(validDays) || validDays < 1 || validDays > 90)) {
-    return { ok: false, error: 'Revise os campos.', fieldErrors: { valid_days: 'Validade entre 1 e 90 dias.' } };
+  const fieldErrors = {};
+
+  const rawDays = String(formData.get('estimated_days') || '').trim();
+  const estimatedDays = Number(rawDays);
+  if (!rawDays) fieldErrors.estimated_days = 'Informe em quantos dias o conserto fica pronto.';
+  else if (!Number.isInteger(estimatedDays) || estimatedDays < 1 || estimatedDays > 365) {
+    fieldErrors.estimated_days = 'Prazo entre 1 e 365 dias.';
   }
+
+  const rawValid = String(formData.get('valid_days') || '').trim();
+  const validDays = rawValid ? Number(rawValid) : null;
+  if (validDays !== null && (!Number.isInteger(validDays) || validDays < 1 || validDays > 90)) {
+    fieldErrors.valid_days = 'Validade entre 1 e 90 dias.';
+  }
+
+  if (Object.keys(fieldErrors).length) return { ok: false, error: 'Revise os campos.', fieldErrors };
+
+  const { error: saveError } = await supabase
+    .from('budget_versions')
+    .update({ estimated_days: estimatedDays })
+    .eq('id', versionId);
+  if (saveError) return actionError('budget.sendSaveDays', saveError, 'Não foi possível salvar o prazo.');
+
   const { error } = await supabase.rpc('send_budget_version', { p_version_id: versionId, p_valid_days: validDays });
   if (error) return actionError('budget.send', error, 'Não foi possível enviar o orçamento.');
   refresh(osId);

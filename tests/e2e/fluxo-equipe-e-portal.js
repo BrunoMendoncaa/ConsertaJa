@@ -126,7 +126,6 @@ async function login(page, email) {
   await p.fill('#new_discount_amount', '20');
   await addForm.getByRole('button', { name: /Adicionar/ }).click();
   await p.waitForTimeout(800);
-  await p.fill('#estimated_days', '4');
   await p.fill('#discount_amount', '29,90');
   await p.getByRole('button', { name: /Salvar condições/ }).click();
   await expectText(p, 'Condições salvas');
@@ -134,6 +133,8 @@ async function login(page, email) {
   const totalText = await p.locator('dl').first().innerText();
   if (!totalText.includes('1.050,00')) problems.push(`total do orçamento inesperado: ${totalText.replace(/\n/g, ' | ')}`);
   await shot(p, '06-budget-editor');
+  // Sem prazo do conserto o envio é barrado no próprio formulário
+  await p.fill('#estimated_days', '4');
   p.once('dialog', (d) => d.accept());
   await p.getByRole('button', { name: /Enviar orçamento/ }).click();
   await expectText(p, 'Aguardando o cliente');
@@ -211,11 +212,16 @@ async function login(page, email) {
   const due = await p.getByText('Em aberto').first().locator('xpath=..').innerText();
   if (!due.includes('0,00')) problems.push(`saldo após pagamento: ${due}`);
   await p.selectOption('#to', 'ENTREGUE');
-  await p.getByRole('button', { name: /Atualizar status/ }).click();
+  const osUrl = p.url();
+  await Promise.all([p.waitForURL(/\/garantia$/, { timeout: 15000 }), p.getByRole('button', { name: /Atualizar status/ }).click()]);
+  await expectText(p, 'dias de garantia');
+  await expectText(p, 'Declaro que retirei o equipamento');
+  await shot(p, '13-certificado-garantia');
+  await p.goto(osUrl);
   await expectText(p, 'Garantia até');
   if ((await p.getByText('2580').count()) > 0) problems.push('senha não foi apagada na entrega');
   await shot(p, '13-os-delivered');
-  log('pagamento + entrega; senha apagada; garantia calculada');
+  log('pagamento + entrega; certificado de garantia; senha apagada');
 
   for (const [url, name, text] of [
     ['/painel/caixa', '14-caixa', 'A receber'],

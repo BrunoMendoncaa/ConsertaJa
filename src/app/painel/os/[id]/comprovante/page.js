@@ -5,6 +5,7 @@ import { PrintButton } from '@/components/ui/print-button';
 import { ButtonLink } from '@/components/ui/button';
 import { getServiceOrder, portalLink } from '@/features/service-orders/queries';
 import { logoUrl } from '@/features/tenancy/queries';
+import { assistanceAddressLine, assistanceContactLine } from '@/features/tenancy/format';
 import { formatDateTime, formatDate } from '@/lib/dates';
 import { formatPhone } from '@/lib/phone';
 import { formatDocument } from '@/lib/document';
@@ -30,9 +31,7 @@ export default async function ReceiptPage({ params }) {
 
   const link = portalLink(assistance.slug, order.access_code);
   const qr = await QRCode.toDataURL(link, { margin: 1, width: 240, errorCorrectionLevel: 'M' });
-  const a = assistance.address || {};
-  const addressLine = [a.rua && `${a.rua}${a.numero ? `, ${a.numero}` : ''}`, a.complemento, a.bairro, a.cidade && `${a.cidade}${a.uf ? `/${a.uf}` : ''}`, a.cep]
-    .filter(Boolean).join(' · ');
+  const addressLine = assistanceAddressLine(assistance.address);
   const logo = logoUrl(assistance.logo_path, assistance.updated_at);
   const e = order.equipment || {};
 
@@ -52,9 +51,7 @@ export default async function ReceiptPage({ params }) {
               <p className="text-lg font-semibold text-slate-900">{assistance.name}</p>
               {assistance.legal_name && <p className="text-xs text-slate-500">{assistance.legal_name}{assistance.document && ` · ${formatDocument(assistance.document)}`}</p>}
               {addressLine && <p className="text-xs text-slate-500">{addressLine}</p>}
-              <p className="text-xs text-slate-500">
-                {[assistance.phone && `Tel. ${assistance.phone}`, assistance.whatsapp && `WhatsApp ${assistance.whatsapp}`, assistance.email].filter(Boolean).join(' · ')}
-              </p>
+              <p className="text-xs text-slate-500">{assistanceContactLine(assistance)}</p>
             </div>
           </div>
           <div className="text-right">

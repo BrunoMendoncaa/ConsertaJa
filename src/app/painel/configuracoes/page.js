@@ -96,8 +96,8 @@ export default async function SettingsPage() {
                 <Field label="Condições de pagamento padrão" name="default_payment_terms">
                   <Input id="default_payment_terms" name="default_payment_terms" defaultValue={a.default_payment_terms || ''} />
                 </Field>
-                <Field label="Política de garantia" name="warranty_policy" className="sm:col-span-2">
-                  <Textarea id="warranty_policy" name="warranty_policy" rows={3} defaultValue={a.warranty_policy || ''} />
+                <Field label="Condições de garantia" name="warranty_policy" className="sm:col-span-2" hint="Uma condição por linha. Saem no certificado de garantia entregue na retirada. Em branco, o certificado usa condições padrão (cobertura do serviço e das peças trocadas; perda por queda, líquido, violação ou mau uso).">
+                  <Textarea id="warranty_policy" name="warranty_policy" rows={4} defaultValue={a.warranty_policy || ''} />
                 </Field>
                 <Field label="Termos do comprovante de entrada" name="entry_terms" className="sm:col-span-2" hint="Ex.: prazo para retirada, responsabilidade sobre dados do aparelho.">
                   <Textarea id="entry_terms" name="entry_terms" rows={4} defaultValue={a.entry_terms || ''} />

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Printer, FileText, KeyRound, Phone, Wrench, Plus } from 'lucide-react';
+import { Printer, FileText, KeyRound, Phone, Wrench, Plus, ShieldCheck } from 'lucide-react';
 import { requireStaff, can } from '@/lib/auth';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
@@ -68,6 +68,7 @@ export default async function OrderPage({ params }) {
   const message = `Olá, ${firstName}! Acompanhe a OS ${order.code} (${equipmentName}) na ${assistance.name}: ${link} — use o telefone cadastrado e o código ${order.access_code}.`;
   const events = (history || []).map((h) => ({ ...h, author: h.author?.full_name }));
   const latestBudget = budgets?.[0];
+  const warrantyLabel = order.outcome === 'REPARADO' ? 'Certificado de garantia' : 'Termo de retirada';
   const today = todayISO();
 
   return (
@@ -85,7 +86,11 @@ export default async function OrderPage({ params }) {
         actions={
           <>
             <ButtonLink href={`/painel/os/${id}/comprovante`} variant="outline" target="_blank"><Printer className="size-4" aria-hidden="true" /> Comprovante</ButtonLink>
-            <ButtonLink href={`/painel/os/${id}/orcamento`}><FileText className="size-4" aria-hidden="true" /> Orçamento</ButtonLink>
+            {order.status === 'ENTREGUE' ? (
+              <ButtonLink href={`/painel/os/${id}/garantia`}><ShieldCheck className="size-4" aria-hidden="true" /> {warrantyLabel}</ButtonLink>
+            ) : (
+              <ButtonLink href={`/painel/os/${id}/orcamento`}><FileText className="size-4" aria-hidden="true" /> Orçamento</ButtonLink>
+            )}
           </>
         }
       />
@@ -234,7 +239,12 @@ export default async function OrderPage({ params }) {
             <CardHeader title="Status" />
             <CardContent className="space-y-6">
               {!closed ? <StatusPanel order={order} role={role} balance={balance} /> : (
-                <p className="text-sm text-slate-500">OS {order.status === 'ENTREGUE' ? 'entregue' : 'cancelada'}. Nenhuma ação pendente.</p>
+                <div className="space-y-3">
+                  <p className="text-sm text-slate-500">OS {order.status === 'ENTREGUE' ? 'entregue' : 'cancelada'}. Nenhuma ação pendente.</p>
+                  {order.status === 'ENTREGUE' && (
+                    <ButtonLink href={`/painel/os/${id}/garantia`} variant="outline" size="sm"><ShieldCheck className="size-4" aria-hidden="true" /> Imprimir {warrantyLabel.toLowerCase()}</ButtonLink>
+                  )}
+                </div>
               )}
               <div>
                 <p className="mb-3 text-sm font-medium text-slate-700">Linha do tempo</p>

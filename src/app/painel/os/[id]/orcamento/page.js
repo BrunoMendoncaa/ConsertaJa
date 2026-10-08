@@ -166,9 +166,6 @@ export default async function BudgetPage({ params, searchParams }) {
                       <Field label="Acréscimo (R$)" name="surcharge_amount">
                         <Input id="surcharge_amount" name="surcharge_amount" inputMode="decimal" defaultValue={Number(selected.surcharge_amount) ? moneyInputValue(selected.surcharge_amount) : ''} placeholder="0,00" />
                       </Field>
-                      <Field label="Prazo estimado (dias)" name="estimated_days" required>
-                        <Input id="estimated_days" name="estimated_days" type="number" min="1" max="365" defaultValue={selected.estimated_days ?? ''} />
-                      </Field>
                       <Field label="Garantia (dias)" name="warranty_days">
                         <Input id="warranty_days" name="warranty_days" type="number" min="0" max="3650" defaultValue={selected.warranty_days ?? ''} />
                       </Field>
@@ -211,7 +208,10 @@ export default async function BudgetPage({ params, searchParams }) {
                   <CardHeader title="Enviar ao cliente" description="Ao enviar, esta versão fica congelada e não pode mais ser editada." />
                   <CardContent>
                     <ActionForm action={sendBudget.bind(null, selected.id, id)} className="space-y-3" confirm="Enviar este orçamento? Depois de enviado, mudanças exigem uma nova versão.">
-                      <Field label="Validade (dias)" name="valid_days" hint={`Padrão da assistência: ${assistance.default_budget_validity_days} dias.`}>
+                      <Field label="Prazo do conserto (dias)" name="estimated_days" required hint="Quantos dias após a aprovação o aparelho fica pronto.">
+                        <Input id="estimated_days" name="estimated_days" type="number" min="1" max="365" required defaultValue={selected.estimated_days ?? ''} placeholder="Ex.: 3" />
+                      </Field>
+                      <Field label="Validade da proposta (dias)" name="valid_days" hint={`Até quando o cliente pode aprovar. Em branco: ${assistance.default_budget_validity_days} dias.`}>
                         <Input id="valid_days" name="valid_days" type="number" min="1" max="90" placeholder={String(assistance.default_budget_validity_days)} />
                       </Field>
                       <SubmitButton className="w-full" pendingText="Enviando..."><Send className="size-4" aria-hidden="true" /> Enviar orçamento</SubmitButton>
