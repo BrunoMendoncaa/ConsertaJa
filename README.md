@@ -25,10 +25,10 @@ Sistema SaaS para assistências técnicas de eletrônicos e eletrodomésticos: o
 
 ```text
 supabase/
-  migrations/        10 migrations em ordem (base, tenancy, clientes, OS, storage, orçamentos, portal, caixa, permissões, garantia no portal)
+  migrations/        11 migrations em ordem (base, tenancy, clientes, OS, storage, orçamentos, portal, caixa, permissões, garantia no portal, assinatura)
   instalacao/        as migrations juntas para colar no SQL Editor (gerado por npm run db:sql-instalacao)
   seed.sql           2 assistências fictícias, usuários, OS em vários status, orçamentos e caixa
-  tests/database/    158 testes pgTAP (isolamento entre tenants, OS, orçamento, portal, garantia, caixa)
+  tests/database/    195 testes pgTAP (isolamento entre tenants, OS, orçamento, portal, garantia, caixa, assinatura)
 src/
   app/               rotas: site, login, onboarding, convite, /painel (equipe) e /a/[slug] (portal do cliente)
   features/          regra de negócio por domínio: actions.js (Server Actions), queries.js, components/
@@ -68,6 +68,29 @@ Quando chegar uma migration nova em `supabase/migrations/`, cole **só ela** no 
 | Migration | O que muda |
 | --- | --- |
 | `20261008130000_portal_warranty.sql` | Cliente abre o certificado de garantia no portal; o código da OS continua valendo durante a garantia. |
+| `20261008140000_billing.sql` | Teste grátis de 14 dias e assinatura pelo Mercado Pago (quem já usa ganha 14 dias a partir da aplicação). |
+
+## Assinatura do Conserta Já (Mercado Pago)
+
+- **Teste grátis de 14 dias, sem cartão**, a partir do cadastro da assistência. Outra assistência do mesmo dono não ganha teste novo.
+- **Plano único:** R$ 49/mês ou R$ 490/ano (valores em `src/lib/billing.js`).
+- **Sem assinatura** (teste acabou ou pagamento atrasado há mais de 7 dias): a equipe continua vendo, concluindo, entregando e recebendo, mas **não abre OS nova nem convida pessoas**. O portal dos clientes continua no ar. A regra fica no banco (`private.billing_access`).
+- O dono ou administrador assina em **Meu plano**: o sistema cria a assinatura no Mercado Pago e leva para o pagamento lá. Na volta, e a cada aviso (webhook), o sistema **consulta a API do Mercado Pago** antes de liberar a conta; nada é liberado só pela URL ou pelo corpo do aviso.
+
+### Configurar
+
+1. Em [Mercado Pago Developers](https://www.mercadopago.com.br/developers) → **Suas integrações** → sua aplicação (produto Assinaturas), copie o **Access Token** para `MP_ACCESS_TOKEN` (no `.env` e na Vercel).
+2. Com o sistema publicado, em **Webhooks → Configurar notificações**, cadastre `https://SEU-DOMINIO/api/mercadopago/webhook`, marque **Planos e assinaturas** e copie a **assinatura secreta** para `MP_WEBHOOK_SECRET`.
+3. Aplique a migration `20261008140000_billing.sql` (tabela em "Atualizando um banco que já está em uso").
+
+### Testar sem cobrar de verdade
+
+1. Em **Suas integrações → Contas de teste**, crie um **vendedor** e um **comprador**.
+2. Use as credenciais do **vendedor de teste** em `MP_ACCESS_TOKEN`.
+3. Em **Meu plano**, informe o **e-mail do comprador de teste**, clique em Assinar e, no Mercado Pago, entre com o comprador de teste e pague com um cartão de teste.
+4. Volte ao sistema: a conta é liberada quando o pagamento aparece como aprovado (botão **Verificar pagamento**, se o webhook ainda não estiver configurado).
+
+> Credenciais que começam com `APP_USR-` da sua conta principal são de **produção**: cobram de verdade.
 
 ## Rodando localmente
 

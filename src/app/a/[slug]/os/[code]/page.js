@@ -85,7 +85,7 @@ export default async function PortalOrderPage({ params }) {
           <ul className="mt-3 divide-y divide-slate-100">
             {o.budgets.map((b) => (
               <li key={b.id}>
-                <Link href={`/a/${slug}/os/${o.code}/orcamento?versao=${b.version}`} className="flex items-center justify-between gap-3 py-3 text-sm">
+                <Link href={`/a/${slug}/os/${o.code}/orcamento?versao=${b.version}`} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-3 text-sm">
                   <span className="flex items-center gap-2 whitespace-nowrap text-slate-700"><FileText className="size-4 text-slate-400" aria-hidden="true" /> Versão {b.version}</span>
                   <span className="tabular font-medium text-slate-900">{formatBRL(b.total)}</span>
                   <BudgetStatusBadge status={b.status} expired={b.is_expired} />

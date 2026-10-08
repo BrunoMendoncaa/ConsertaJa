@@ -3,8 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL } from './env';
 
 /**
- * Cliente com a CHAVE SECRETA. Ignora o RLS — por isso o uso é restrito:
- * só assina URLs de fotos que uma função portal_* já autorizou para a sessão.
+ * Cliente com a CHAVE SECRETA. Ignora o RLS — por isso o uso é restrito a:
+ * - assinar URLs de fotos que uma função portal_* já autorizou para a sessão;
+ * - gravar a assinatura do Conserta Já depois de conferir no Mercado Pago
+ *   (funções billing_* que a equipe não pode executar).
  * Nunca importe este arquivo em um Client Component.
  */
 export function createAdminClient() {

@@ -212,7 +212,6 @@ async function login(page, email) {
   const due = await p.getByText('Em aberto').first().locator('xpath=..').innerText();
   if (!due.includes('0,00')) problems.push(`saldo após pagamento: ${due}`);
   await p.selectOption('#to', 'ENTREGUE');
-  const osUrl = p.url();
   await Promise.all([p.waitForURL(/\/garantia$/, { timeout: 15000 }), p.getByRole('button', { name: /Atualizar status/ }).click()]);
   await expectText(p, 'dias de garantia');
   await expectText(p, 'Declaro que retirei o equipamento');

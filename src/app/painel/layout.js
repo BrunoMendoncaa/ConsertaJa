@@ -3,13 +3,21 @@ import { requireStaff } from '@/lib/auth';
 import { ROLES, MANAGER_ROLES, TECH_ROLES } from '@/lib/constants';
 import { getMyAssistances } from '@/features/tenancy/queries';
 import { switchAssistance } from '@/features/tenancy/actions';
+import { getBillingStatus } from '@/features/billing/queries';
+import { BillingNotice } from '@/features/billing/components/billing-notice';
+import { ACCESS_LABELS } from '@/lib/billing';
 
 export const metadata = { title: { default: 'Painel', template: '%s · Conserta Já' } };
 
 export default async function PainelLayout({ children }) {
   const ctx = await requireStaff();
-  const mine = await getMyAssistances();
+  const [mine, billing] = await Promise.all([getMyAssistances(), getBillingStatus()]);
   const isManager = MANAGER_ROLES.includes(ctx.role);
+  const planLabel = billing
+    ? billing.access === 'trial'
+      ? `Teste grátis · ${billing.trial_days_left} ${billing.trial_days_left === 1 ? 'dia' : 'dias'}`
+      : ACCESS_LABELS[billing.access]
+    : null;
 
   const items = [
     { href: '/painel', label: 'Dashboard', icon: 'dashboard' },
@@ -24,6 +32,7 @@ export default async function PainelLayout({ children }) {
           { href: '/painel/relatorios', label: 'Relatórios', icon: 'reports' },
           { href: '/painel/usuarios', label: 'Equipe', icon: 'users' },
           { href: '/painel/configuracoes', label: 'Configurações', icon: 'settings' },
+          { href: '/painel/plano', label: 'Meu plano', icon: 'plan' },
         ]
       : []),
   ];
@@ -48,6 +57,9 @@ export default async function PainelLayout({ children }) {
       userName={ctx.profile?.full_name || ctx.user.email}
       roleLabel={ROLES[ctx.role]}
       switcher={switcher}
+      planLabel={planLabel}
+      planHref={isManager ? '/painel/plano' : null}
+      notice={<BillingNotice billing={billing} />}
     >
       {children}
     </AppShell>

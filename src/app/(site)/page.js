@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { Logo } from '@/components/layout/logo';
 import { ButtonLink } from '@/components/ui/button';
+import { PLANS, PLAN_FEATURES, TRIAL_DAYS } from '@/lib/billing';
 
 const features = [
   { icon: ClipboardList, title: 'Ordem de serviço em 1 minuto', text: 'Cliente, equipamento, defeito, acessórios e condição de entrada num fluxo rápido de balcão. Número OS-2026-000123 gerado na hora.' },
@@ -48,7 +49,7 @@ export default function LandingPage() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <ButtonLink href="/cadastro" size="lg">
-              Começar agora <ArrowRight className="size-4" aria-hidden="true" />
+              Testar grátis por {TRIAL_DAYS} dias <ArrowRight className="size-4" aria-hidden="true" />
             </ButtonLink>
             <ButtonLink href="/entrar" variant="outline" size="lg">Já tenho conta</ButtonLink>
           </div>
@@ -161,15 +162,50 @@ export default function LandingPage() {
             </li>
           ))}
         </ol>
-        <div className="mt-10 rounded-2xl bg-slate-900 px-8 py-10 text-white">
+      </section>
+
+      <section id="precos" className="border-y border-slate-200 bg-slate-50">
+        <div className="mx-auto max-w-6xl px-6 py-16">
+          <div className="max-w-2xl">
+            <h2 className="text-3xl font-semibold tracking-tight text-slate-900">Preço simples, sem surpresa</h2>
+            <p className="mt-3 text-lg text-slate-600">Teste tudo por {TRIAL_DAYS} dias, sem cartão. Gostou? Assine um plano único, com tudo liberado.</p>
+          </div>
+          <div className="mt-8 grid gap-5 md:grid-cols-3">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6">
+              <p className="text-sm font-medium text-slate-600">Teste grátis</p>
+              <p className="mt-1 text-3xl font-bold text-slate-900">{TRIAL_DAYS} dias</p>
+              <p className="mt-2 text-sm text-slate-600">Sem cartão de crédito e sem compromisso. Tudo liberado desde o primeiro dia.</p>
+            </div>
+            {Object.values(PLANS).map((p) => (
+              <div key={p.cycle} className={`rounded-2xl border bg-white p-6 ${p.cycle === 'yearly' ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-slate-200'}`}>
+                <p className="flex items-center justify-between gap-2 text-sm font-medium text-slate-600">
+                  {p.label}
+                  {p.note && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800">{p.note}</span>}
+                </p>
+                <p className="mt-1 text-3xl font-bold text-slate-900">R$ {p.amount}<span className="text-base font-medium text-slate-500">/{p.cycle === 'yearly' ? 'ano' : 'mês'}</span></p>
+                <p className="mt-2 text-sm text-slate-600">{p.cycle === 'yearly' ? 'Equivale a R$ 40,83 por mês.' : 'Sem fidelidade. Cancele quando quiser.'}</p>
+              </div>
+            ))}
+          </div>
+          <ul className="mt-6 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
+            {PLAN_FEATURES.map((f) => (
+              <li key={f} className="flex items-center gap-2"><CircleCheck className="size-4 shrink-0 text-emerald-600" aria-hidden="true" />{f}</li>
+            ))}
+          </ul>
+          <p className="mt-4 text-xs text-slate-500">Pagamento pelo Mercado Pago. Se o teste acabar sem assinatura, nada é apagado: você continua vendo e concluindo o que já existe.</p>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 py-16">
+        <div className="rounded-2xl bg-slate-900 px-8 py-10 text-white">
           <h2 className="text-2xl font-semibold">Comece hoje com a sua assistência</h2>
           <ul className="mt-4 space-y-2 text-sm text-slate-300">
-            {['Cadastro em 2 minutos', 'Link próprio para seus clientes', 'Certificado de garantia na entrega', 'Equipe com permissões por função'].map((t) => (
+            {[`${TRIAL_DAYS} dias grátis, sem cartão`, 'Cadastro em 2 minutos', 'Link próprio para seus clientes', 'Certificado de garantia na entrega'].map((t) => (
               <li key={t} className="flex items-center gap-2"><CircleCheck className="size-4 text-emerald-400" aria-hidden="true" />{t}</li>
             ))}
           </ul>
           <Link href="/cadastro" className="mt-6 inline-flex h-11 items-center gap-2 rounded-lg bg-white px-5 text-sm font-semibold text-slate-900 hover:bg-slate-100">
-            Criar conta <ArrowRight className="size-4" aria-hidden="true" />
+            Começar o teste grátis <ArrowRight className="size-4" aria-hidden="true" />
           </Link>
         </div>
       </section>

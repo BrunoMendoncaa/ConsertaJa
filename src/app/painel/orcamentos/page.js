@@ -41,7 +41,7 @@ export default async function BudgetsPage({ searchParams }) {
   return (
     <>
       <PageHeader title="Orçamentos" description={`${rows?.length || 0} orçamento(s) · ${formatBRL(total)}`} />
-      <div className="mb-4 flex gap-1 overflow-x-auto pb-1">
+      <div className="mb-4 flex flex-wrap gap-1.5">
         {FILTERS.map(([k, label]) => (
           <Link key={k} href={`?filtro=${k}`}
             className={cn('whitespace-nowrap rounded-full px-3 py-1.5 text-sm',
@@ -52,6 +52,29 @@ export default async function BudgetsPage({ searchParams }) {
       </div>
       <Card>
         {rows?.length ? (
+          <>
+          {/* Celular: cartões */}
+          <ul className="divide-y divide-slate-100 md:hidden">
+            {rows.map((r) => (
+              <li key={r.id}>
+                <Link href={`/painel/os/${r.service_order_id}/orcamento?versao=${r.version}`} className="block px-4 py-3 active:bg-slate-50">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-medium text-slate-900">{r.service_order_code} <span className="font-normal text-slate-500">· v{r.version}</span></p>
+                    <BudgetStatusBadge status={r.status} expired={r.is_expired} />
+                  </div>
+                  <p className="mt-0.5 truncate text-sm text-slate-600">{r.customer_name} · {[r.brand, r.model].filter(Boolean).join(' ') || r.category_name}</p>
+                  <div className="mt-1 flex items-baseline justify-between gap-2">
+                    <span className="text-xs text-slate-500">
+                      {r.decided_at ? `${DECISION_CHANNELS[r.decision_channel]} · ${formatDate(r.decided_at)}`
+                        : r.sent_at ? `Vence ${formatDate(r.valid_until)}` : `Criado ${formatDate(r.created_at)}`}
+                    </span>
+                    <span className="tabular font-semibold text-slate-900">{formatBRL(r.total)}</span>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden md:block">
           <Table>
             <THead><tr><TH>OS</TH><TH>Cliente</TH><TH className="hidden md:table-cell">Equipamento</TH><TH>Versão</TH><TH className="text-right">Total</TH><TH>Status</TH><TH className="hidden lg:table-cell">Data</TH></tr></THead>
             <TBody>
@@ -71,6 +94,8 @@ export default async function BudgetsPage({ searchParams }) {
               ))}
             </TBody>
           </Table>
+          </div>
+          </>
         ) : <EmptyState icon={FileText} title="Nenhum orçamento neste filtro" />}
       </Card>
     </>

@@ -3,6 +3,10 @@ import { PageHeader } from '@/components/ui/page-header';
 import { NewOrderWizard } from '@/features/service-orders/components/new-order-wizard';
 import { getCategories, getTechnicians } from '@/features/tenancy/queries';
 import { SITE_URL } from '@/lib/supabase/env';
+import { getBillingStatus } from '@/features/billing/queries';
+import { Card, CardContent } from '@/components/ui/card';
+import { ButtonLink } from '@/components/ui/button';
+import { Lock } from 'lucide-react';
 
 export const metadata = { title: 'Nova OS' };
 
@@ -11,6 +15,26 @@ const UUID = /^[0-9a-f-]{36}$/i;
 export default async function NewOrderPage({ searchParams }) {
   const { supabase, assistance } = await requireStaff();
   const sp = await searchParams;
+  const billing = await getBillingStatus();
+  if (billing?.access === 'blocked') {
+    return (
+      <>
+        <PageHeader title="Nova ordem de serviço" back={{ href: '/painel/os', label: 'Ordens de serviço' }} />
+        <Card className="max-w-xl">
+          <CardContent className="flex gap-4 py-6">
+            <Lock className="mt-0.5 size-6 shrink-0 text-red-600" aria-hidden="true" />
+            <div>
+              <p className="font-semibold text-slate-900">Assinatura necessária para abrir OS nova</p>
+              <p className="mt-1 text-sm text-slate-600">O teste grátis terminou. Você continua vendo, concluindo e entregando as OS que já existem.</p>
+              {billing.can_manage
+                ? <ButtonLink href="/painel/plano" className="mt-4">Assinar o Conserta Já</ButtonLink>
+                : <p className="mt-3 text-sm text-slate-600">Peça ao responsável pela assistência para assinar.</p>}
+            </div>
+          </CardContent>
+        </Card>
+      </>
+    );
+  }
   const customerId = UUID.test(sp?.cliente || '') ? sp.cliente : null;
   const equipmentParam = UUID.test(sp?.equipamento || '') ? sp.equipamento : null;
 

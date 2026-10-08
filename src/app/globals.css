@@ -23,6 +23,24 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+@layer base {
+  /* Celular: grade de uma coluna que nunca passa da largura da tela.
+     As classes sm:/lg:/xl:grid-cols-* continuam valendo nas telas maiores. */
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Campos com 16px no celular: abaixo disso o iPhone aplica zoom ao tocar no
+   campo e a pessoa precisa arrastar a tela para todos os lados. */
+@media (max-width: 639px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 body {
   background: #f8fafc;
   color: #0f172a;

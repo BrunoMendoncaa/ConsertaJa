@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, ClipboardList, Users, Smartphone, FileText, Wallet, ChartColumn, UserCog,
-  Settings, LogOut, Menu, X, Plus, Truck, ChevronDown,
+  Settings, LogOut, Menu, X, Plus, Truck, ChevronDown, CreditCard,
 } from 'lucide-react';
 import { Logo } from './logo';
 import { cn } from '@/lib/cn';
@@ -13,6 +13,7 @@ import { cn } from '@/lib/cn';
 const ICONS = {
   dashboard: LayoutDashboard, os: ClipboardList, customers: Users, equipment: Smartphone,
   budgets: FileText, cash: Wallet, reports: ChartColumn, users: UserCog, settings: Settings, suppliers: Truck,
+  plan: CreditCard,
 };
 
 function NavLinks({ items, onNavigate }) {
@@ -41,7 +42,7 @@ function NavLinks({ items, onNavigate }) {
   );
 }
 
-export function AppShell({ items, assistanceName, userName, roleLabel, switcher, children }) {
+export function AppShell({ items, assistanceName, userName, roleLabel, switcher, planLabel, planHref, notice, children }) {
   const [open, setOpen] = useState(false);
 
   const sidebar = (
@@ -53,6 +54,9 @@ export function AppShell({ items, assistanceName, userName, roleLabel, switcher,
       <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
         <p className="truncate text-sm font-semibold text-slate-900" title={assistanceName}>{assistanceName}</p>
         <p className="text-xs text-slate-500">{roleLabel}</p>
+        {planLabel && (planHref ? (
+          <Link href={planHref} onClick={() => setOpen(false)} className="mt-1 block text-xs font-medium text-brand-700 hover:underline">{planLabel}</Link>
+        ) : <p className="mt-1 text-xs font-medium text-slate-600">{planLabel}</p>)}
         {switcher}
       </div>
 
@@ -109,7 +113,7 @@ export function AppShell({ items, assistanceName, userName, roleLabel, switcher,
       )}
 
       <main className="min-w-0 flex-1 lg:pl-64 print:pl-0">
-        <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8 print:max-w-none print:p-0">{children}</div>
+        <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8 print:max-w-none print:p-0">{notice}{children}</div>
       </main>
     </div>
   );

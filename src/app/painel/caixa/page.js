@@ -65,6 +65,38 @@ export default async function CashPage({ searchParams }) {
           <Card>
             <CardHeader title="Lançamentos" description={`${formatDate(period.from)} a ${formatDate(period.to)}`} />
             {txs?.length ? (
+              <>
+              {/* Celular: cartões */}
+              <ul className="divide-y divide-slate-100 sm:hidden">
+                {txs.map((t) => (
+                  <li key={t.id} className={`px-4 py-3 ${t.voided_at ? 'opacity-50' : ''}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className={`text-sm text-slate-900 ${t.voided_at ? 'line-through' : ''}`}>{t.description}</p>
+                        <p className="text-xs text-slate-500">
+                          {formatDate(t.occurred_at)} · {CASH_CATEGORIES[t.category].label} · {PAYMENT_METHODS[t.payment_method]}
+                          {t.service_order_code && <> · <Link href={`/painel/os/${t.service_order_id}`} className="underline">{t.service_order_code}</Link></>}
+                          {t.supplier_name && ` · ${t.supplier_name}`}
+                        </p>
+                        {t.voided_at && <p className="text-xs text-red-600">Anulado: {t.void_reason}</p>}
+                      </div>
+                      <p className={`tabular shrink-0 whitespace-nowrap text-sm font-semibold ${t.direction === 'IN' ? 'text-emerald-700' : 'text-red-700'}`}>
+                        {t.direction === 'IN' ? '+' : '−'} {formatBRL(t.amount)}
+                      </p>
+                    </div>
+                    {isManager && !t.voided_at && (
+                      <details className="mt-1">
+                        <summary className="cursor-pointer text-xs text-slate-500">Anular</summary>
+                        <ActionForm action={voidCashTransaction.bind(null, t.id)} className="mt-2 flex gap-2">
+                          <Input name="reason" placeholder="Motivo da anulação" className="min-w-0 flex-1" />
+                          <SubmitButton variant="danger" size="sm">OK</SubmitButton>
+                        </ActionForm>
+                      </details>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <div className="hidden sm:block">
               <Table>
                 <THead><tr><TH>Data</TH><TH>Descrição</TH><TH className="hidden md:table-cell">Forma</TH><TH className="text-right">Valor</TH>{isManager && <TH />}</tr></THead>
                 <TBody>
@@ -102,6 +134,8 @@ export default async function CashPage({ searchParams }) {
                   ))}
                 </TBody>
               </Table>
+              </div>
+              </>
             ) : <EmptyState icon={Wallet} title="Nenhum lançamento no período" />}
           </Card>
 
@@ -109,6 +143,22 @@ export default async function CashPage({ searchParams }) {
             <Card>
               <CardHeader title="A receber por OS" description="Orçamentos aprovados com saldo em aberto." />
               {receivables?.length ? (
+                <>
+                <ul className="divide-y divide-slate-100 sm:hidden">
+                  {receivables.map((r) => (
+                    <li key={r.service_order_id}>
+                      <Link href={`/painel/os/${r.service_order_id}`} className="flex items-start justify-between gap-3 px-4 py-3 active:bg-slate-50">
+                        <div className="min-w-0">
+                          <p className="font-medium text-slate-900">{r.code}</p>
+                          <p className="truncate text-sm text-slate-600">{r.customer_name}</p>
+                          <p className="text-xs text-slate-500">Aprovado {formatBRL(r.approved_total)} · recebido {formatBRL(r.received)}</p>
+                        </div>
+                        <p className="tabular shrink-0 text-right text-sm font-semibold text-amber-700">{formatBRL(r.balance_due)}<span className="block text-[11px] font-normal text-slate-500">em aberto</span></p>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                <div className="hidden sm:block">
                 <Table>
                   <THead><tr><TH>OS</TH><TH>Cliente</TH><TH className="text-right">Aprovado</TH><TH className="text-right">Recebido</TH><TH className="text-right">Em aberto</TH></tr></THead>
                   <TBody>
@@ -123,6 +173,8 @@ export default async function CashPage({ searchParams }) {
                     ))}
                   </TBody>
                 </Table>
+                </div>
+                </>
               ) : <CardContent className="text-sm text-slate-500">Nada a receber.</CardContent>}
             </Card>
           )}

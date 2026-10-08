@@ -6,6 +6,8 @@ import { resolvePeriod, formatDate } from '@/lib/dates';
 import { friendlyMessage, DB_NOT_READY_MESSAGE } from '@/lib/errors';
 import { allowedCategories } from '@/features/finance/rules';
 import { warrantyDocument, warrantyTerms, DEFAULT_WARRANTY_TERMS } from '@/features/service-orders/warranty';
+import { verifyWebhookSignature, parseWebhook, mapPreapprovalStatus, mapAuthorizedPayments } from '@/features/billing/mp-utils';
+import crypto from 'node:crypto';
 
 describe('dinheiro', () => {
   it('converte formatos brasileiros para decimal com 2 casas', () => {
@@ -128,5 +130,46 @@ describe('certificado de garantia', () => {
       'Cobre a tela trocada', '90 dias para defeitos de fábrica da peça',
     ]);
     expect(warrantyTerms('   ')).toBe(DEFAULT_WARRANTY_TERMS);
+  });
+});
+
+describe('Mercado Pago: webhook e conversões', () => {
+  const secret = 'segredo-de-teste';
+  const sign = (manifest) => crypto.createHmac('sha256', secret).update(manifest).digest('hex');
+
+  it('aceita a assinatura correta (data.id em minúsculas no manifest)', () => {
+    const v1 = sign('id:abc123xyz;request-id:req-1;ts:1700000000;');
+    expect(verifyWebhookSignature({ signature: `ts=1700000000,v1=${v1}`, requestId: 'req-1', dataId: 'ABC123XYZ', secret })).toBe(true);
+  });
+  it('recusa segredo errado, id trocado ou cabeçalho incompleto', () => {
+    const v1 = sign('id:123;request-id:req-1;ts:1700000000;');
+    expect(verifyWebhookSignature({ signature: `ts=1700000000,v1=${v1}`, requestId: 'req-1', dataId: '123', secret: 'outro' })).toBe(false);
+    expect(verifyWebhookSignature({ signature: `ts=1700000000,v1=${v1}`, requestId: 'req-1', dataId: '999', secret })).toBe(false);
+    expect(verifyWebhookSignature({ signature: 'ts=1700000000', requestId: 'req-1', dataId: '123', secret })).toBe(false);
+    expect(verifyWebhookSignature({ signature: null, requestId: 'req-1', dataId: '123', secret })).toBe(false);
+  });
+  it('omite do manifest o que não veio (sem x-request-id)', () => {
+    const v1 = sign('id:123;ts:1700000000;');
+    expect(verifyWebhookSignature({ signature: `ts=1700000000,v1=${v1}`, dataId: '123', secret })).toBe(true);
+  });
+  it('lê tipo e id do formato novo e do antigo', () => {
+    expect(parseWebhook({ searchParams: new URLSearchParams('data.id=55&type=subscription_preapproval'), body: null }))
+      .toEqual({ type: 'subscription_preapproval', dataId: '55' });
+    expect(parseWebhook({ searchParams: new URLSearchParams('topic=subscription_authorized_payment&id=77'), body: null }))
+      .toEqual({ type: 'subscription_authorized_payment', dataId: '77' });
+    expect(parseWebhook({ searchParams: new URLSearchParams(''), body: { type: 'payment', data: { id: 9 } } }))
+      .toEqual({ type: 'payment', dataId: '9' });
+  });
+  it('converte status e faturas; só "approved" conta como pago', () => {
+    expect(mapPreapprovalStatus('authorized')).toBe('authorized');
+    expect(mapPreapprovalStatus('finished')).toBe('cancelled');
+    expect(mapPreapprovalStatus('qualquer')).toBe('pending');
+    expect(mapAuthorizedPayments([
+      { id: 1, transaction_amount: 49, status: 'processed', debit_date: '2026-10-08T10:00:00Z', payment: { id: 10, status: 'approved' } },
+      { id: 2, transaction_amount: 49, status: 'recycling', payment: { id: 11, status: 'rejected' } },
+    ])).toEqual([
+      { id: '1', payment_id: '10', amount: 49, status: 'approved', paid_at: '2026-10-08T10:00:00Z' },
+      { id: '2', payment_id: '11', amount: 49, status: 'rejected', paid_at: null },
+    ]);
   });
 });

@@ -71,6 +71,30 @@ export default async function ReportsPage({ searchParams }) {
       <Card className="mt-6">
         <CardHeader title="Lucro estimado por OS entregue" description="Recebido − peças compradas para a OS." />
         {orders.length ? (
+          <>
+          <ul className="divide-y divide-slate-100 sm:hidden">
+            {orders.map((o) => (
+              <li key={o.id}>
+                <Link href={`/painel/os/${o.id}`} className="block px-4 py-3 active:bg-slate-50">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-slate-900">{o.code}</p>
+                      <p className="truncate text-sm text-slate-600">{o.customer}</p>
+                    </div>
+                    <p className={`tabular shrink-0 text-right text-sm font-semibold ${Number(o.profit) >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                      {formatBRL(o.profit)}<span className="block text-[11px] font-normal text-slate-500">lucro</span>
+                    </p>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500">Aprovado {formatBRL(o.approved_total)} · recebido {formatBRL(o.received)} · custos {formatBRL(o.costs)}</p>
+                </Link>
+              </li>
+            ))}
+            <li className="flex items-baseline justify-between gap-3 bg-slate-50 px-4 py-3 text-sm font-semibold">
+              <span>Total</span>
+              <span className="tabular">{formatBRL(totals.profit)}</span>
+            </li>
+          </ul>
+          <div className="hidden sm:block">
           <Table>
             <THead><tr><TH>OS</TH><TH>Cliente</TH><TH className="text-right">Aprovado</TH><TH className="text-right">Recebido</TH><TH className="text-right">Custos</TH><TH className="text-right">Lucro</TH></tr></THead>
             <TBody>
@@ -93,6 +117,8 @@ export default async function ReportsPage({ searchParams }) {
               </tr>
             </TBody>
           </Table>
+          </div>
+          </>
         ) : <CardContent className="text-sm text-slate-500">Nenhuma OS entregue no período.</CardContent>}
       </Card>
 

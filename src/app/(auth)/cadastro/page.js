@@ -12,7 +12,7 @@ export default async function SignUpPage({ searchParams }) {
   return (
     <>
       <h1 className="text-xl font-semibold text-slate-900">Criar conta</h1>
-      <p className="mt-1 text-sm text-slate-500">Depois você cadastra sua assistência ou aceita um convite da equipe.</p>
+      <p className="mt-1 text-sm text-slate-500">14 dias grátis, sem cartão. Depois você cadastra sua assistência ou aceita um convite da equipe.</p>
       <ActionForm action={signUp} className="mt-6 space-y-4">
         <input type="hidden" name="next" value={next} />
         <Field label="Seu nome" name="full_name">

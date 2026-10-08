@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { ButtonLink, Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input, Select } from '@/components/ui/input';
+import { AutoSubmitSelect } from '@/components/ui/auto-submit-select';
 import { Table, THead, TBody, TH, TD } from '@/components/ui/table';
 import { StatusBadge, Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -65,7 +66,8 @@ export default async function OrdersPage({ searchParams }) {
         actions={<ButtonLink href="/painel/os/nova"><Plus className="size-4" aria-hidden="true" /> Nova OS</ButtonLink>}
       />
 
-      <div className="mb-4 flex gap-1 overflow-x-auto pb-1">
+      {/* Telas maiores: atalhos por status. No celular, o status vira um campo do filtro abaixo. */}
+      <div className="mb-4 hidden flex-wrap gap-1.5 sm:flex">
         {tabs.map(([key, label]) => (
           <Link key={key} href={qs({ status: key, pagina: '1' })}
             className={cn('whitespace-nowrap rounded-full px-3 py-1.5 text-sm',
@@ -76,7 +78,9 @@ export default async function OrdersPage({ searchParams }) {
       </div>
 
       <form className="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap" role="search">
-        <input type="hidden" name="status" value={status} />
+        <AutoSubmitSelect name="status" defaultValue={status} aria-label="Status" className="sm:hidden">
+          {tabs.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+        </AutoSubmitSelect>
         <Input name="q" defaultValue={q} placeholder="Nº da OS, cliente, telefone, modelo, IMEI" className="sm:max-w-md sm:flex-1" />
         <Select name="tecnico" defaultValue={tech} className="sm:w-48">
           <option value="">Todos os técnicos</option>
