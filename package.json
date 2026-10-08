@@ -1,0 +1,41 @@
+{
+  "name": "conserta-ja",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Conserta Já — sistema de gestão para assistências técnicas (SaaS multi-tenant)",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest run",
+    "db:start": "npx supabase start",
+    "db:reset": "npx supabase db reset",
+    "db:test": "npx supabase test db",
+    "db:push": "npx supabase db push",
+    "db:sql-instalacao": "node scripts/gerar-sql-instalacao.mjs",
+    "test:e2e": "node tests/e2e/fluxo-equipe-e-portal.js && node tests/e2e/cadastro-convite-recusa.js"
+  },
+  "engines": {
+    "node": ">=20.9"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.117.3",
+    "browser-image-compression": "^2.0.2",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.53.0",
+    "next": "^16.4.0",
+    "qrcode": "^1.5.4",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^3.7.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "postcss": "^8.5.29",
+    "tailwindcss": "^4.3.3",
+    "vitest": "^5.0.3"
+  }
+}

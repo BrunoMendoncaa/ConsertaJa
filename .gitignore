@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+.env
+.env.local
+.env.*.local
+supabase/.branches
+supabase/.temp
+*.log
+.DS_Store
+.vercel
+tests/e2e/screenshots
