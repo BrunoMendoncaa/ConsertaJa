@@ -175,7 +175,7 @@ export default function LandingPage() {
       </section>
 
       <footer className="border-t border-slate-200 py-8 text-center text-xs text-slate-500">
-        © {new Date().getFullYear()} Conserta Já
+        © 2026 BSM Technology · Conserta Já
       </footer>
     </div>
   );
