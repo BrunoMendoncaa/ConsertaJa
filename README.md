@@ -25,9 +25,10 @@ Sistema SaaS para assistências técnicas de eletrônicos e eletrodomésticos: o
 
 ```text
 supabase/
-  migrations/        9 migrations em ordem (base, tenancy, clientes, OS, storage, orçamentos, portal, caixa, permissões)
+  migrations/        10 migrations em ordem (base, tenancy, clientes, OS, storage, orçamentos, portal, caixa, permissões, garantia no portal)
+  instalacao/        as migrations juntas para colar no SQL Editor (gerado por npm run db:sql-instalacao)
   seed.sql           2 assistências fictícias, usuários, OS em vários status, orçamentos e caixa
-  tests/database/    147 testes pgTAP (isolamento entre tenants, OS, orçamento, portal, caixa)
+  tests/database/    158 testes pgTAP (isolamento entre tenants, OS, orçamento, portal, garantia, caixa)
 src/
   app/               rotas: site, login, onboarding, convite, /painel (equipe) e /a/[slug] (portal do cliente)
   features/          regra de negócio por domínio: actions.js (Server Actions), queries.js, components/
@@ -59,6 +60,14 @@ npx supabase link --project-ref SEU_PROJECT_REF
 npx supabase db push                 # estrutura
 npx supabase db push --include-seed  # estrutura + dados de teste (só em projeto de teste)
 ```
+
+### Atualizando um banco que já está em uso
+
+Quando chegar uma migration nova em `supabase/migrations/`, cole **só ela** no SQL Editor e rode (na ordem do nome, se forem várias). Os scripts de `supabase/instalacao/` são para banco vazio e se recusam a rodar de novo.
+
+| Migration | O que muda |
+| --- | --- |
+| `20261008130000_portal_warranty.sql` | Cliente abre o certificado de garantia no portal; o código da OS continua valendo durante a garantia. |
 
 ## Rodando localmente
 

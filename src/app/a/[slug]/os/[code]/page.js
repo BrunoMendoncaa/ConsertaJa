@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { ChevronLeft, FileText } from 'lucide-react';
+import { ChevronLeft, FileText, ShieldCheck, ChevronRight } from 'lucide-react';
 import { StatusBadge, BudgetStatusBadge } from '@/components/ui/badge';
 import { OrderProgress } from '@/features/portal/components/progress';
 import { Timeline } from '@/features/service-orders/components/timeline';
 import { portalCall, signPortalPhotos } from '@/features/portal/queries';
-import { formatDate } from '@/lib/dates';
+import { formatDate, todayISO } from '@/lib/dates';
 import { formatBRL } from '@/lib/money';
 import { OUTCOMES, PHOTO_KINDS } from '@/lib/constants';
 
@@ -19,6 +19,9 @@ export default async function PortalOrderPage({ params }) {
   const photos = await signPortalPhotos(o.photos);
   const pending = o.budgets.find((b) => b.status === 'ENVIADO' && !b.is_expired);
   const eq = o.equipment || {};
+  const delivered = o.status === 'ENTREGUE';
+  const repaired = o.outcome === 'REPARADO';
+  const warrantyActive = Boolean(o.warranty_until) && o.warranty_until >= todayISO();
 
   return (
     <div className="space-y-5">
@@ -39,6 +42,24 @@ export default async function PortalOrderPage({ params }) {
         </dl>
         {o.outcome && o.outcome !== 'REPARADO' && <p className="mt-4 text-sm text-slate-600">{OUTCOMES[o.outcome]}</p>}
       </section>
+
+      {delivered && (
+        <Link href={`/a/${slug}/os/${o.code}/garantia`}
+          className={`flex items-center justify-between gap-3 rounded-2xl border p-5 shadow-sm hover:shadow ${repaired && warrantyActive ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-white'}`}>
+          <div className="flex items-start gap-3">
+            <ShieldCheck className={`mt-0.5 size-6 shrink-0 ${repaired && warrantyActive ? 'text-emerald-700' : 'text-slate-400'}`} aria-hidden="true" />
+            <div>
+              <p className="font-semibold text-slate-900">{repaired ? 'Certificado de garantia' : 'Termo de retirada'}</p>
+              <p className="text-sm text-slate-600">
+                {!repaired && 'Comprovante da retirada do equipamento.'}
+                {repaired && o.warranty_until && (warrantyActive ? `Garantia em vigor até ${formatDate(o.warranty_until)}.` : `Garantia encerrada em ${formatDate(o.warranty_until)}.`)}
+                {repaired && !o.warranty_until && 'Serviço sem prazo de garantia contratual.'}
+              </p>
+            </div>
+          </div>
+          <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-sm font-semibold text-slate-800">Ver <ChevronRight className="size-4" aria-hidden="true" /></span>
+        </Link>
+      )}
 
       {pending && (
         <Link href={`/a/${slug}/os/${o.code}/orcamento`}

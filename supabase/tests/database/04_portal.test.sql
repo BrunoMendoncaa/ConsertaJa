@@ -157,6 +157,64 @@ create temp table _tok2 on commit drop as
 select lives_ok($$select public.portal_logout((select token from _tok2))$$, 'logout');
 select throws_ok($$select * from public.portal_me((select token from _tok2), 'tenant-a-test')$$, 'PT401', null, 'sessão encerrada não vale mais');
 
+-- ---------------------------------------------------------------------------
+-- Certificado de garantia no portal
+-- ---------------------------------------------------------------------------
+reset role;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+set local role anon;
+create temp table _tok3 on commit drop as
+  select token from public.portal_login('tenant-a-test', '11 95555-5555', 'AAAAA2', '10.0.0.4', 't');
+select ok((select token is not null from _tok3), 'cliente entra de novo com o telefone novo');
+select is(public.portal_get_warranty((select token from _tok3), 'tenant-a-test', 'OS-' || extract(year from now())::int || '-000001'),
+  null, 'antes da entrega não há certificado');
+
+-- Técnico conclui e entrega
+reset role;
+select set_config('request.jwt.claims', '{"sub":"a0000000-0000-4000-8000-000000000a02","role":"authenticated"}', true);
+set local role authenticated;
+update public.service_orders set solution = 'Tela trocada e testada' where id = 'a5000000-0000-4000-8000-000000000001';
+select public.change_service_order_status('a5000000-0000-4000-8000-000000000001', 'EM_MANUTENCAO');
+select public.change_service_order_status('a5000000-0000-4000-8000-000000000001', 'PRONTO');
+select public.change_service_order_status('a5000000-0000-4000-8000-000000000001', 'ENTREGUE');
+
+reset role;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+set local role anon;
+create temp table _cert on commit drop as
+  select public.portal_get_warranty((select token from _tok3), 'tenant-a-test', 'os-' || extract(year from now())::int || '-000001') as c;
+select results_eq($$select c -> 'order' ->> 'status', c -> 'order' ->> 'outcome', (c -> 'approved' ->> 'warranty_days')::int,
+                           c -> 'order' -> 'customer' ->> 'name', c -> 'assistance' ->> 'name' from _cert$$,
+  $$values ('ENTREGUE'::text, 'REPARADO'::text, 90, 'Cliente A1'::text, 'Tenant A'::text)$$,
+  'certificado da própria OS entregue: dados do cliente, da assistência e prazo');
+select ok((select (c -> 'order' ->> 'warranty_until')::date = (now() at time zone 'America/Sao_Paulo')::date + 90 from _cert), 'garantia vai até hoje + 90 dias');
+select ok((select jsonb_array_length(c -> 'approved' -> 'snapshot' -> 'items') = 1 from _cert), 'traz os itens do orçamento aprovado');
+select ok((select c::text not like '%Nota interna%' and c::text not like '%Margem baixa%' from _cert),
+  'observações internas da OS e do orçamento não vão para o certificado');
+select is(public.portal_get_warranty((select token from _tok3), 'tenant-a-test', 'OS-' || extract(year from now())::int || '-000002'),
+  null, 'certificado de OS de outro cliente: não encontrado');
+select throws_ok($$select public.portal_get_warranty((select token from _tok3), 'tenant-b-test', 'OS-' || extract(year from now())::int || '-000001')$$,
+  'PT401', null, 'sessão de A não abre certificado no portal de B');
+select throws_ok($$select public.portal_get_warranty('token-falso', 'tenant-a-test', 'OS-' || extract(year from now())::int || '-000001')$$,
+  'PT401', null, 'sem sessão válida não há certificado');
+
+-- O código da OS entregue continua valendo durante a garantia (mesmo depois de 90 dias)
+reset role;
+alter table public.service_orders disable trigger set_updated_at;
+update public.service_orders set updated_at = now() - interval '120 days' where id = 'a5000000-0000-4000-8000-000000000001';
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+set local role anon;
+select ok((select token is not null from public.portal_login('tenant-a-test', '11 95555-5555', 'AAAAA2', '10.0.0.5', 't')),
+  'OS entregue há 120 dias, garantia em vigor: login continua funcionando');
+reset role;
+update public.service_orders set warranty_until = private.today_br() - 1 where id = 'a5000000-0000-4000-8000-000000000001';
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+set local role anon;
+select results_eq($$select error_message from public.portal_login('tenant-a-test', '11 95555-5555', 'AAAAA2', '10.0.0.5', 't')$$,
+  array['Telefone ou código não conferem.'], 'garantia vencida e mais de 90 dias: o código deixa de valer');
+reset role;
+alter table public.service_orders enable trigger set_updated_at;
+
 reset role;
 select * from finish();
 rollback;

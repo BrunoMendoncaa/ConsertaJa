@@ -223,6 +223,16 @@ async function login(page, email) {
   await shot(p, '13-os-delivered');
   log('pagamento + entrega; certificado de garantia; senha apagada');
 
+  // O cliente vê o certificado no portal (e não vê o de outra OS)
+  await c.goto(`${BASE}/a/assistencia-tech-sp/os/${code}`);
+  await expectText(c, 'Garantia em vigor até');
+  await Promise.all([c.waitForURL(/\/garantia$/), c.getByText('Certificado de garantia').first().click()]);
+  await expectText(c, 'dias de garantia');
+  await shot(c, '13b-portal-certificado');
+  const otherCert = await c.goto(`${BASE}/a/assistencia-tech-sp/os/OS-2026-000001/garantia`);
+  if (otherCert.status() !== 404) problems.push(`certificado de outro cliente respondeu ${otherCert.status()}`);
+  log('cliente abre o certificado de garantia no portal; o de outra OS dá 404');
+
   for (const [url, name, text] of [
     ['/painel/caixa', '14-caixa', 'A receber'],
     ['/painel/relatorios', '15-relatorios', 'Lucro estimado'],

@@ -48,7 +48,7 @@ export function WarrantyCertificate({ doc, order, approved, assistance, logo }) 
   return (
     <article className="print-compact rounded-xl border border-slate-200 bg-white p-6 shadow-sm print:border-0 print:p-0 print:shadow-none sm:p-8">
       {/* Assistência */}
-      <header className="flex items-start justify-between gap-6 border-b border-slate-200 pb-4">
+      <header className="flex flex-col gap-4 border-b border-slate-200 pb-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="flex items-start gap-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {logo && <img src={logo} alt="" className="size-14 rounded-lg object-contain" />}
@@ -63,7 +63,7 @@ export function WarrantyCertificate({ doc, order, approved, assistance, logo }) 
             {contactLine && <p className="text-xs text-slate-500">{contactLine}</p>}
           </div>
         </div>
-        <div className="shrink-0 text-right">
+        <div className="shrink-0 sm:text-right">
           <p className="text-xs uppercase tracking-wide text-slate-500">{title}</p>
           <p className="text-xl font-semibold text-slate-900">{order.code}</p>
           <p className="text-xs text-slate-500">Retirada em {formatDate(order.delivered_at)}</p>
@@ -147,7 +147,7 @@ export function WarrantyCertificate({ doc, order, approved, assistance, logo }) 
               </tbody>
               <tfoot>
                 <tr className="font-semibold">
-                  <td colSpan={3} className="pt-2 text-right">Total</td>
+                  <td colSpan={3} className="pt-2 pr-3 text-right">Total</td>
                   <td className="tabular pt-2 text-right">{formatBRL(approved.total)}</td>
                 </tr>
               </tfoot>

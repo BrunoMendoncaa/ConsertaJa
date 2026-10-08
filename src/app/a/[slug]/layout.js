@@ -22,8 +22,8 @@ export default async function PortalLayout({ children, params }) {
     .filter(Boolean).join(' · ');
 
   return (
-    <div className="flex min-h-dvh flex-col bg-slate-50" style={{ '--brand': a.brand_color || '#2563eb' }}>
-      <header className="border-b border-slate-200 bg-white">
+    <div className="flex min-h-dvh flex-col bg-slate-50 print:bg-white" style={{ '--brand': a.brand_color || '#2563eb' }}>
+      <header className="border-b border-slate-200 bg-white print:hidden">
         <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-4">
           {logo ? (
             /* eslint-disable-next-line @next/next/no-img-element */
@@ -40,9 +40,9 @@ export default async function PortalLayout({ children, params }) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">{children}</main>
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6 print:max-w-none print:p-0">{children}</main>
 
-      <footer className="border-t border-slate-200 bg-white">
+      <footer className="border-t border-slate-200 bg-white print:hidden">
         <div className="mx-auto max-w-2xl space-y-2 px-4 py-6 text-sm text-slate-600">
           <p className="font-medium text-slate-900">{a.name}</p>
           {a.whatsapp && (

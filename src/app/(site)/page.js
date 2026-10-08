@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import {
   ClipboardList, Camera, FileText, Smartphone, Wallet, ShieldCheck, ArrowRight, CircleCheck, QrCode,
+  BadgeCheck, CalendarClock, ListChecks, Printer,
 } from 'lucide-react';
 import { Logo } from '@/components/layout/logo';
 import { ButtonLink } from '@/components/ui/button';
@@ -14,7 +15,14 @@ const features = [
   { icon: ShieldCheck, title: 'Seus dados isolados', text: 'Cada assistência é isolada no próprio banco de dados. Ninguém de fora enxerga seus clientes ou números.' },
 ];
 
-const steps = ['Receba', 'Registre', 'Fotografe', 'Diagnostique', 'Orce', 'Cliente aprova', 'Conserte', 'Receba o pagamento', 'Entregue'];
+const steps = ['Receba', 'Registre', 'Fotografe', 'Diagnostique', 'Orce', 'Cliente aprova', 'Conserte', 'Receba o pagamento', 'Entregue com garantia'];
+
+const warrantyPoints = [
+  { icon: CalendarClock, title: 'Gerado na entrega', text: 'Ao registrar a retirada, o prazo começa a contar e o sistema calcula o vencimento sozinho.' },
+  { icon: ListChecks, title: 'Tudo documentado', text: 'Defeito, solução, peças e serviços do orçamento aprovado, número de série e IMEI do aparelho.' },
+  { icon: BadgeCheck, title: 'Suas condições', text: 'Você define o que a garantia cobre e quando ela perde a validade. O certificado sai com o seu logo.' },
+  { icon: Printer, title: 'Impresso ou no celular', text: 'Entregue impresso no balcão ou em PDF pelo WhatsApp. O cliente também abre pelo link da sua assistência enquanto a garantia valer.' },
+];
 
 export default function LandingPage() {
   return (
@@ -36,7 +44,7 @@ export default function LandingPage() {
             Do balcão à entrega, cada conserto sob controle.
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-slate-600">
-            Abra ordens de serviço, registre fotos, envie orçamentos que o cliente aprova pelo celular e acompanhe o caixa da sua assistência num só lugar.
+            Abra ordens de serviço, registre fotos, envie orçamentos que o cliente aprova pelo celular, entregue com certificado de garantia e acompanhe o caixa da sua assistência num só lugar.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <ButtonLink href="/cadastro" size="lg">
@@ -90,7 +98,60 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 py-16">
+      <section className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-16 lg:grid-cols-2">
+        <div>
+          <p className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">
+            <ShieldCheck className="size-3.5" aria-hidden="true" /> Certificado de garantia
+          </p>
+          <h2 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900">Garantia que o cliente leva para casa</h2>
+          <p className="mt-3 text-lg leading-relaxed text-slate-600">
+            Na retirada, o Conserta Já gera o certificado com tudo o que foi feito no aparelho. Menos discussão no balcão quando o cliente volta, mais confiança para ele voltar.
+          </p>
+          <ul className="mt-8 grid gap-5 sm:grid-cols-2">
+            {warrantyPoints.map(({ icon: Icon, title, text }) => (
+              <li key={title}>
+                <Icon className="size-5 text-emerald-700" aria-hidden="true" />
+                <p className="mt-2 font-semibold text-slate-900">{title}</p>
+                <p className="mt-1 text-sm leading-relaxed text-slate-600">{text}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
+          <div className="rounded-xl bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-slate-500">Certificado de garantia</p>
+                <p className="text-lg font-semibold text-slate-900">OS-2026-000123</p>
+              </div>
+              <p className="text-right text-xs text-slate-500">Retirada em<br /><span className="font-medium text-slate-700">08/10/2026</span></p>
+            </div>
+            <div className="mt-4 flex items-center gap-3 rounded-xl border-2 border-emerald-600 bg-emerald-50 px-4 py-3">
+              <ShieldCheck className="size-8 shrink-0 text-emerald-700" aria-hidden="true" />
+              <div>
+                <p className="text-lg font-bold text-slate-900">90 dias de garantia</p>
+                <p className="text-sm text-slate-700">Válida até <strong>06/01/2027</strong></p>
+              </div>
+            </div>
+            <p className="mt-4 text-sm text-slate-600">iPhone 13 · IMEI 3567••••••2345</p>
+            <div className="mt-2 divide-y divide-slate-100 text-sm">
+              {[['Peça', 'Display original'], ['Serviço', 'Mão de obra'], ['Serviço', 'Limpeza interna']].map(([k, d]) => (
+                <div key={d} className="flex justify-between gap-3 py-2"><span className="text-slate-900">{d}</span><span className="text-slate-500">{k}</span></div>
+              ))}
+            </div>
+            <div className="mt-6 grid grid-cols-2 gap-6 text-center text-[11px] text-slate-500">
+              <span className="border-t border-slate-300 pt-1.5">Cliente</span>
+              <span className="border-t border-slate-300 pt-1.5">Assistência</span>
+            </div>
+          </div>
+          <p className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+            <Smartphone className="size-4" aria-hidden="true" /> O cliente também abre o certificado pelo celular.
+          </p>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 pb-16">
         <h2 className="text-2xl font-semibold tracking-tight text-slate-900">O fluxo completo, sem planilha</h2>
         <ol className="mt-6 flex flex-wrap gap-2">
           {steps.map((s, i) => (
@@ -103,7 +164,7 @@ export default function LandingPage() {
         <div className="mt-10 rounded-2xl bg-slate-900 px-8 py-10 text-white">
           <h2 className="text-2xl font-semibold">Comece hoje com a sua assistência</h2>
           <ul className="mt-4 space-y-2 text-sm text-slate-300">
-            {['Cadastro em 2 minutos', 'Link próprio para seus clientes', 'Equipe com permissões por função'].map((t) => (
+            {['Cadastro em 2 minutos', 'Link próprio para seus clientes', 'Certificado de garantia na entrega', 'Equipe com permissões por função'].map((t) => (
               <li key={t} className="flex items-center gap-2"><CircleCheck className="size-4 text-emerald-400" aria-hidden="true" />{t}</li>
             ))}
           </ul>
