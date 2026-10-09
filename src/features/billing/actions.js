@@ -31,6 +31,7 @@ export async function startCheckout(_prev, formData) {
   // Assinou durante o teste: a 1ª cobrança fica para o fim do teste (não perde dias).
   const trialEnds = new Date(assistance.trial_ends_at);
   const startDate = trialEnds.getTime() > Date.now() + 60 * 60 * 1000 ? trialEnds.toISOString() : undefined;
+  const backUrl = `${SITE_URL}/painel/plano/retorno`;
   let checkoutUrl;
   try {
     const pre = await createPreapproval({
@@ -40,7 +41,7 @@ export async function startCheckout(_prev, formData) {
       amount: plan.amount,
       months: plan.months,
       startDate,
-      backUrl: `${SITE_URL}/painel/plano/retorno`,
+      backUrl,
       idempotencyKey: crypto.randomUUID(),
     });
     checkoutUrl = pre.init_point || pre.sandbox_init_point;
@@ -58,8 +59,8 @@ export async function startCheckout(_prev, formData) {
     });
     if (error) throw error;
   } catch (error) {
-    const ref = logError('billing.startCheckout', error, { mp: error?.details });
-    return { ok: false, ref, error: describeCheckoutError(error) };
+    const ref = logError('billing.startCheckout', error, { mp: error?.details, backUrl });
+    return { ok: false, ref, error: describeCheckoutError(error, { backUrl }) };
   }
   redirect(checkoutUrl);
 }

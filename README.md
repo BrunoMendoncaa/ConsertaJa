@@ -82,6 +82,7 @@ Quando chegar uma migration nova em `supabase/migrations/`, cole **só ela** no 
 1. Em [Mercado Pago Developers](https://www.mercadopago.com.br/developers) → **Suas integrações** → sua aplicação (produto Assinaturas), copie o **Access Token** para `MP_ACCESS_TOKEN` (no `.env` e na Vercel).
 2. Com o sistema publicado, em **Webhooks → Configurar notificações**, cadastre `https://SEU-DOMINIO/api/mercadopago/webhook`, marque **Planos e assinaturas** e copie a **assinatura secreta** para `MP_WEBHOOK_SECRET`.
 3. Aplique a migration `20261008140000_billing.sql` (tabela em "Atualizando um banco que já está em uso").
+4. Na Vercel, crie `CRON_SECRET` (um texto aleatório longo, ex.: o resultado de `node -e "console.log(crypto.randomUUID()+crypto.randomUUID())"`) e faça um novo deploy. Todo dia às 07:00 (Brasília) a Vercel chama `/api/cron/assinaturas` (configurado em `vercel.json`), que confere no Mercado Pago as assinaturas vigentes e os pagamentos iniciados nos últimos 3 dias. É a rede de segurança caso um aviso (webhook) se perca — por exemplo, com credenciais de teste o Mercado Pago muitas vezes não envia avisos.
 
 ### Testar sem cobrar de verdade
 
@@ -95,7 +96,12 @@ Erros comuns ao assinar (a tela mostra o motivo informado pelo Mercado Pago):
 - **E-mail real com credencial de teste** (ou o contrário): o Mercado Pago só aceita pagador e recebedor do mesmo tipo. Em teste, use o e-mail do comprador de teste.
 - **Pagador igual ao recebedor**: o e-mail não pode ser o da conta que recebe as assinaturas.
 
-> Para cobrar de verdade, ative as **Credenciais de produção** da aplicação e troque o `MP_ACCESS_TOKEN` na Vercel.
+### Passar para produção (cobrar de verdade)
+
+1. No Mercado Pago, ative as **Credenciais de produção** da aplicação e troque o `MP_ACCESS_TOKEN` na Vercel (e no `.env`) pelo Access Token de produção. Faça um novo deploy.
+2. Confira se o webhook tem a mesma URL em **modo produção** e se o `MP_WEBHOOK_SECRET` continua o da aplicação.
+3. Rode **uma vez** no SQL Editor o arquivo `supabase/manutencao/limpar-assinaturas-de-teste.sql`. As assinaturas feitas em teste não existem na conta de produção; o script apaga esse histórico e volta as assistências ao teste grátis (mantendo a data de fim do teste). Não mexe em OS, clientes nem caixa.
+4. Faça uma assinatura real com **outra** conta do Mercado Pago (a sua conta é a que recebe e não pode pagar a si mesma) e, se quiser, cancele em seguida em **Meu plano**.
 
 ## Rodando localmente
 

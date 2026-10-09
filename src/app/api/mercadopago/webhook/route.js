@@ -31,7 +31,14 @@ export async function POST(request) {
     dataId: url.searchParams.get('data.id') || dataId,
     secret,
   });
-  if (!valid) return Response.json({ error: 'assinatura inválida' }, { status: 401 });
+  if (!valid) {
+    // Sem dados sensíveis: só o que ajuda a achar o problema (segredo trocado, aviso de outra aplicação).
+    console.warn(JSON.stringify({
+      level: 'warn', context: 'billing.webhook', message: 'assinatura inválida (confira MP_WEBHOOK_SECRET)',
+      type, dataId, hasSignature: Boolean(request.headers.get('x-signature')), at: new Date().toISOString(),
+    }));
+    return Response.json({ error: 'assinatura inválida' }, { status: 401 });
+  }
   if (!dataId) return Response.json({ ok: true, ignored: 'sem id' });
 
   try {
@@ -42,6 +49,7 @@ export async function POST(request) {
       if (invoice?.preapproval_id) await syncSubscription(String(invoice.preapproval_id));
     }
     // Outros tipos (ex.: payment) não mudam o acesso: a fatura da assinatura já cobre.
+    console.info(JSON.stringify({ level: 'info', context: 'billing.webhook', message: 'aviso processado', type, dataId, at: new Date().toISOString() }));
     return Response.json({ ok: true });
   } catch (error) {
     // Assinatura que não é nossa (ou de outro ambiente): confirma para não receber de novo.

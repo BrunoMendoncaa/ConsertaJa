@@ -186,6 +186,9 @@ describe('Mercado Pago: mensagem quando a assinatura é recusada', () => {
   it('explica país e back_url', () => {
     expect(describeCheckoutError(err(400, { message: 'Cannot operate between different countries' }))).toMatch(/outro país/);
     expect(describeCheckoutError(err(400, { message: 'Invalid value for back_url, must be a valid URL' }))).toMatch(/NEXT_PUBLIC_SITE_URL/);
+    const withUrl = describeCheckoutError(err(400, { message: 'Invalid value for back_url, must be a valid URL' }), { backUrl: 'http://localhost:3000/painel/plano/retorno' });
+    expect(withUrl).toContain('(http://localhost:3000/painel/plano/retorno)');
+    expect(withUrl).toContain('Invalid value for back_url');
   });
   it('credencial recusada, falha do MP ou erro interno', () => {
     expect(describeCheckoutError(err(401, { message: 'invalid access token' }))).toMatch(/MP_ACCESS_TOKEN/);

@@ -75,7 +75,7 @@ export function mapAuthorizedPayments(results) {
  * Mensagem para quem tentou assinar, a partir do erro da API do Mercado Pago.
  * Casos comuns ganham explicação própria; nos demais, mostra o motivo que o MP informou.
  */
-export function describeCheckoutError(error) {
+export function describeCheckoutError(error, { backUrl } = {}) {
   const status = Number(error?.status) || 0;
   const d = error?.details || {};
   const causes = Array.isArray(d.cause) ? d.cause.map((c) => c?.description || c?.message || c?.code) : [];
@@ -102,7 +102,7 @@ export function describeCheckoutError(error) {
     return 'A conta Mercado Pago desse e-mail é de outro país. Use uma conta do Brasil.';
   }
   if (/back.?url/.test(text)) {
-    return 'O endereço de retorno foi recusado. Confira NEXT_PUBLIC_SITE_URL (precisa ser o endereço público, com https://).';
+    return `O Mercado Pago recusou o endereço de retorno${backUrl ? ` (${backUrl})` : ''}. Confira NEXT_PUBLIC_SITE_URL: precisa ser o endereço público, com https://. Motivo informado: "${reason}".`;
   }
   return reason
     ? `O Mercado Pago recusou o pedido. Motivo informado: "${reason}".`
