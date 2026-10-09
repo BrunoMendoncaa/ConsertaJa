@@ -8,7 +8,7 @@ export function Logo({ className, inverted = false }) {
         <Wrench className="size-4" aria-hidden="true" />
       </span>
       <span className={cn('text-lg', inverted ? 'text-white' : 'text-slate-900')}>
-        Conserta <span className="text-accent-500">Já</span>
+        Tecno<span className="text-accent-500">Fix</span>
       </span>
     </span>
   );

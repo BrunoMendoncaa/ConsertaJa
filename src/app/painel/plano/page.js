@@ -108,7 +108,7 @@ export default async function PlanPage({ searchParams }) {
 
   return (
     <>
-      <PageHeader title="Meu plano" description="Assinatura do Conserta Já para a sua assistência." />
+      <PageHeader title="Meu plano" description="Assinatura do TecnoFix para a sua assistência." />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
@@ -117,7 +117,7 @@ export default async function PlanPage({ searchParams }) {
 
           {showSubscribe && (
             <Card>
-              <CardHeader title="Assinar o Conserta Já" description="Plano único, com tudo liberado. Pagamento seguro pelo Mercado Pago." />
+              <CardHeader title="Assinar o TecnoFix" description="Plano único, com tudo liberado. Pagamento seguro pelo Mercado Pago." />
               <CardContent>
                 {!configured ? (
                   <Alert variant="warning">O pagamento ainda não foi configurado neste ambiente (MP_ACCESS_TOKEN).</Alert>

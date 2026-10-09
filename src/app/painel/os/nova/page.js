@@ -27,7 +27,7 @@ export default async function NewOrderPage({ searchParams }) {
               <p className="font-semibold text-slate-900">Assinatura necessária para abrir OS nova</p>
               <p className="mt-1 text-sm text-slate-600">O teste grátis terminou. Você continua vendo, concluindo e entregando as OS que já existem.</p>
               {billing.can_manage
-                ? <ButtonLink href="/painel/plano" className="mt-4">Assinar o Conserta Já</ButtonLink>
+                ? <ButtonLink href="/painel/plano" className="mt-4">Assinar o TecnoFix</ButtonLink>
                 : <p className="mt-3 text-sm text-slate-600">Peça ao responsável pela assistência para assinar.</p>}
             </div>
           </CardContent>

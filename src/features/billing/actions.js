@@ -13,7 +13,7 @@ import { isMercadoPagoConfigured, createPreapproval, cancelPreapproval } from '@
 import { syncAssistance, syncSubscription } from '@/features/billing/sync';
 import { describeCheckoutError } from '@/features/billing/mp-utils';
 
-const NOT_CONFIGURED = 'O pagamento ainda não foi configurado neste ambiente. Fale com o suporte do Conserta Já.';
+const NOT_CONFIGURED = 'O pagamento ainda não foi configurado neste ambiente. Fale com o suporte do TecnoFix.';
 
 const checkoutSchema = z.object({
   cycle: z.enum(['monthly', 'yearly'], { error: 'Escolha mensal ou anual.' }),

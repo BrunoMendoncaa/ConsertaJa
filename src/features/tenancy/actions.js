@@ -68,7 +68,7 @@ export async function createInvitation(_prev, formData) {
     message: `Convite criado para ${parsed.data.email}. Envie o link abaixo (vale por 7 dias).`,
     data: {
       link,
-      whatsappText: `Olá! Você foi convidado(a) para a equipe da ${assistance.name} no Conserta Já. Crie sua conta ou entre com o e-mail ${parsed.data.email} e acesse: ${link}`,
+      whatsappText: `Olá! Você foi convidado(a) para a equipe da ${assistance.name} no TecnoFix. Crie sua conta ou entre com o e-mail ${parsed.data.email} e acesse: ${link}`,
     },
   };
 }

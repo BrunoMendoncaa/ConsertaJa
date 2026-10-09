@@ -1,4 +1,4 @@
-// Planos e regras da assinatura do Conserta Já (usado no servidor, nas telas e na landing).
+// Planos e regras da assinatura do TecnoFix (usado no servidor, nas telas e na landing).
 // Os mesmos números estão nas regras do banco (migration 0011): 14 dias de teste
 // e 7 dias de tolerância para pagamento atrasado.
 
@@ -12,7 +12,7 @@ export const PLANS = {
     amount: 49,
     months: 1,
     priceLabel: 'R$ 49/mês',
-    reason: 'Conserta Já — assinatura mensal',
+    reason: 'TecnoFix — assinatura mensal',
   },
   yearly: {
     cycle: 'yearly',
@@ -21,7 +21,7 @@ export const PLANS = {
     months: 12,
     priceLabel: 'R$ 490/ano',
     note: '2 meses grátis',
-    reason: 'Conserta Já — assinatura anual',
+    reason: 'TecnoFix — assinatura anual',
   },
 };
 

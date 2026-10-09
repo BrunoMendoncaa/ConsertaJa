@@ -19,7 +19,7 @@ const migrations = files.map((f) => {
 });
 
 const header = `-- =============================================================================
--- Conserta Já · Instalação do banco (1 de 2): estrutura
+-- TecnoFix · Instalação do banco (1 de 2): estrutura
 -- GERADO AUTOMATICAMENTE por scripts/gerar-sql-instalacao.mjs — não edite à mão.
 --
 -- Como usar: Supabase > SQL Editor > New query > cole este arquivo inteiro > Run.
@@ -81,7 +81,7 @@ $$;
 `;
 if (!/^begin;$/m.test(seed)) throw new Error('seed.sql deveria começar com "begin;"');
 const seedHeader = `-- =============================================================================
--- Conserta Já · Instalação do banco (2 de 2): dados de teste (OPCIONAL)
+-- TecnoFix · Instalação do banco (2 de 2): dados de teste (OPCIONAL)
 -- GERADO AUTOMATICAMENTE por scripts/gerar-sql-instalacao.mjs — não edite à mão.
 --
 -- Cria 2 assistências fictícias, 4 logins (senha consertaja123), clientes,

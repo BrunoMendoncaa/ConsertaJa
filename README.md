@@ -1,4 +1,4 @@
-# Conserta Já
+# TecnoFix
 
 Sistema SaaS para assistências técnicas de eletrônicos e eletrodomésticos: ordem de serviço, fotos de entrada, orçamento versionado com aprovação pelo celular, portal do cliente, caixa e indicadores. Multi-tenant desde o início, com o isolamento entre assistências garantido **dentro do banco** (RLS + chaves estrangeiras compostas + funções que nunca confiam no `assistance_id` vindo da tela).
 
@@ -25,7 +25,7 @@ Sistema SaaS para assistências técnicas de eletrônicos e eletrodomésticos: o
 
 ```text
 supabase/
-  migrations/        12 migrations em ordem (base, tenancy, clientes, OS, storage, orçamentos, portal, caixa, permissões, garantia no portal, assinatura, travas da assinatura)
+  migrations/        13 migrations em ordem (base, tenancy, clientes, OS, storage, orçamentos, portal, caixa, permissões, garantia no portal, assinatura, travas da assinatura, nome TecnoFix)
   instalacao/        as migrations juntas para colar no SQL Editor (gerado por npm run db:sql-instalacao)
   seed.sql           2 assistências fictícias, usuários, OS em vários status, orçamentos e caixa
   tests/database/    200 testes pgTAP (isolamento entre tenants, OS, orçamento, portal, garantia, caixa, assinatura)
@@ -70,8 +70,9 @@ Quando chegar uma migration nova em `supabase/migrations/`, cole **só ela** no 
 | `20261008130000_portal_warranty.sql` | Cliente abre o certificado de garantia no portal; o código da OS continua valendo durante a garantia. |
 | `20261008140000_billing.sql` | Teste grátis de 14 dias e assinatura pelo Mercado Pago (quem já usa ganha 14 dias a partir da aplicação). |
 | `20261009120000_billing_lock_order.sql` | Conferências simultâneas da assinatura sem travamento (deadlock). |
+| `20261009130000_nome_tecnofix.sql` | Novo nome do produto (TecnoFix) na mensagem de conta sem assinatura e endereço `/a/tecnofix` reservado. |
 
-## Assinatura do Conserta Já (Mercado Pago)
+## Assinatura do TecnoFix (Mercado Pago)
 
 - **Teste grátis de 14 dias, sem cartão**, a partir do cadastro da assistência. Outra assistência do mesmo dono não ganha teste novo.
 - **Plano único:** R$ 49/mês ou R$ 490/ano (valores em `src/lib/billing.js`).

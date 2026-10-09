@@ -1,10 +1,10 @@
-# Conserta Já — Planejamento e Arquitetura
+# TecnoFix (antes Conserta Já) — Planejamento e Arquitetura
 
 08/10/2026 · Bruno · Cópia do documento vivo: https://claude.ai/code/artifact/90d49dd3-9414-48e8-a259-b80ea2652d2e (diagramas e respostas às decisões ficam lá)
 
 ## 1. Resumo e decisões pendentes
 
-O Conserta Já fica de pé com 19 tabelas, isolamento entre assistências garantido em três camadas dentro do banco e um portal do cliente que não exige criar conta. A Fase 1 começa quando você responder as 7 decisões abaixo.
+O TecnoFix fica de pé com 19 tabelas, isolamento entre assistências garantido em três camadas dentro do banco e um portal do cliente que não exige criar conta. A Fase 1 começa quando você responder as 7 decisões abaixo.
 
 As escolhas de arquitetura que sustentam o resto do documento:
 

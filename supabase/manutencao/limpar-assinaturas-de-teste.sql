@@ -1,5 +1,5 @@
 -- =============================================================================
--- Conserta Já · Limpar as assinaturas de TESTE do Mercado Pago
+-- TecnoFix · Limpar as assinaturas de TESTE do Mercado Pago
 --
 -- Quando rodar: UMA VEZ, ao trocar as credenciais de teste do Mercado Pago pelas
 -- de produção (antes de começar a vender). As assinaturas criadas em teste não

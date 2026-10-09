@@ -2,7 +2,7 @@
   "name": "conserta-ja",
   "version": "0.1.0",
   "private": true,
-  "description": "Conserta Já — sistema de gestão para assistências técnicas (SaaS multi-tenant)",
+  "description": "TecnoFix — sistema de gestão para assistências técnicas (SaaS multi-tenant)",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

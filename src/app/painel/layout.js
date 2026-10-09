@@ -7,7 +7,7 @@ import { getBillingStatus } from '@/features/billing/queries';
 import { BillingNotice } from '@/features/billing/components/billing-notice';
 import { ACCESS_LABELS } from '@/lib/billing';
 
-export const metadata = { title: { default: 'Painel', template: '%s · Conserta Já' } };
+export const metadata = { title: { default: 'Painel', template: '%s · TecnoFix' } };
 
 export default async function PainelLayout({ children }) {
   const ctx = await requireStaff();

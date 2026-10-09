@@ -54,7 +54,7 @@ export default async function OnboardingPage({ searchParams }) {
           <form action="/sair" method="post" className="inline"><button className="underline">Sair</button></form>
         </div>
       </div>
-      <Link href="/" className="mt-6 text-xs text-slate-400 hover:text-slate-600">conserta já</Link>
+      <Link href="/" className="mt-6 text-xs text-slate-400 hover:text-slate-600">tecnofix</Link>
     </main>
   );
 }

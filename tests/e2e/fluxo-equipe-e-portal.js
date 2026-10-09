@@ -3,7 +3,7 @@
 //   npm run build && npm start                     (app em http://localhost:3000)
 //   npm i -D playwright && npx playwright install chromium
 // Rodar: node tests/e2e/fluxo-equipe-e-portal.js
-// Teste de ponta a ponta do Conserta Já contra a pilha local (GoTrue + PostgREST + Storage).
+// Teste de ponta a ponta do TecnoFix contra a pilha local (GoTrue + PostgREST + Storage).
 const { chromium } = require('playwright');
 const fs = require('fs');
 

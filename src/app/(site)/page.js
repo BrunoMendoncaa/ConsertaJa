@@ -106,7 +106,7 @@ export default function LandingPage() {
           </p>
           <h2 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900">Garantia que o cliente leva para casa</h2>
           <p className="mt-3 text-lg leading-relaxed text-slate-600">
-            Na retirada, o Conserta Já gera o certificado com tudo o que foi feito no aparelho. Menos discussão no balcão quando o cliente volta, mais confiança para ele voltar.
+            Na retirada, o TecnoFix gera o certificado com tudo o que foi feito no aparelho. Menos discussão no balcão quando o cliente volta, mais confiança para ele voltar.
           </p>
           <ul className="mt-8 grid gap-5 sm:grid-cols-2">
             {warrantyPoints.map(({ icon: Icon, title, text }) => (
@@ -211,7 +211,7 @@ export default function LandingPage() {
       </section>
 
       <footer className="border-t border-slate-200 py-8 text-center text-xs text-slate-500">
-        © 2026 BSM Technology · Conserta Já
+        © 2026 BSM Technology · TecnoFix
       </footer>
     </div>
   );

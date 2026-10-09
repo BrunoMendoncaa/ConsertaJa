@@ -1,7 +1,7 @@
 import './globals.css';
 
 export const metadata = {
-  title: { default: 'Conserta Já · Gestão para assistências técnicas', template: '%s · Conserta Já' },
+  title: { default: 'TecnoFix · Gestão para assistências técnicas', template: '%s · TecnoFix' },
   description:
     'Ordens de serviço, orçamentos com aprovação online, fotos de entrada, portal do cliente e caixa para assistências técnicas.',
 };
