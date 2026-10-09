@@ -11,6 +11,7 @@ import { SITE_URL } from '@/lib/supabase/env';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isMercadoPagoConfigured, createPreapproval, cancelPreapproval } from '@/lib/mercadopago';
 import { syncAssistance, syncSubscription } from '@/features/billing/sync';
+import { describeCheckoutError } from '@/features/billing/mp-utils';
 
 const NOT_CONFIGURED = 'O pagamento ainda não foi configurado neste ambiente. Fale com o suporte do Conserta Já.';
 
@@ -58,13 +59,7 @@ export async function startCheckout(_prev, formData) {
     if (error) throw error;
   } catch (error) {
     const ref = logError('billing.startCheckout', error, { mp: error?.details });
-    return {
-      ok: false,
-      ref,
-      error: error?.status === 400
-        ? 'O Mercado Pago recusou o pedido. Confira o e-mail informado (precisa ser o da sua conta Mercado Pago) e tente de novo.'
-        : 'Não foi possível abrir o pagamento no Mercado Pago agora. Tente de novo em instantes.',
-    };
+    return { ok: false, ref, error: describeCheckoutError(error) };
   }
   redirect(checkoutUrl);
 }

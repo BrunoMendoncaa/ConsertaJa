@@ -6,7 +6,7 @@ import { resolvePeriod, formatDate } from '@/lib/dates';
 import { friendlyMessage, DB_NOT_READY_MESSAGE } from '@/lib/errors';
 import { allowedCategories } from '@/features/finance/rules';
 import { warrantyDocument, warrantyTerms, DEFAULT_WARRANTY_TERMS } from '@/features/service-orders/warranty';
-import { verifyWebhookSignature, parseWebhook, mapPreapprovalStatus, mapAuthorizedPayments } from '@/features/billing/mp-utils';
+import { verifyWebhookSignature, parseWebhook, mapPreapprovalStatus, mapAuthorizedPayments, describeCheckoutError } from '@/features/billing/mp-utils';
 import crypto from 'node:crypto';
 
 describe('dinheiro', () => {
@@ -171,5 +171,29 @@ describe('Mercado Pago: webhook e conversões', () => {
       { id: '1', payment_id: '10', amount: 49, status: 'approved', paid_at: '2026-10-08T10:00:00Z' },
       { id: '2', payment_id: '11', amount: 49, status: 'rejected', paid_at: null },
     ]);
+  });
+});
+
+describe('Mercado Pago: mensagem quando a assinatura é recusada', () => {
+  const err = (status, details) => Object.assign(new Error('mp'), { status, details });
+  it('explica credencial de teste com e-mail real', () => {
+    expect(describeCheckoutError(err(400, { message: 'Both payer and collector must be real or test users' }))).toMatch(/comprador de teste/);
+    expect(describeCheckoutError(err(400, { message: 'Invalid users involved' }))).toMatch(/comprador de teste/);
+  });
+  it('explica pagador igual ao recebedor', () => {
+    expect(describeCheckoutError(err(400, { message: 'Payer and collector cannot be the same user' }))).toMatch(/mesma conta/);
+  });
+  it('explica país e back_url', () => {
+    expect(describeCheckoutError(err(400, { message: 'Cannot operate between different countries' }))).toMatch(/outro país/);
+    expect(describeCheckoutError(err(400, { message: 'Invalid value for back_url, must be a valid URL' }))).toMatch(/NEXT_PUBLIC_SITE_URL/);
+  });
+  it('credencial recusada, falha do MP ou erro interno', () => {
+    expect(describeCheckoutError(err(401, { message: 'invalid access token' }))).toMatch(/MP_ACCESS_TOKEN/);
+    expect(describeCheckoutError(err(503, null))).toMatch(/Tente de novo/);
+    expect(describeCheckoutError(new Error('rede'))).toMatch(/Tente de novo/);
+  });
+  it('nos demais casos mostra o motivo do Mercado Pago', () => {
+    const msg = describeCheckoutError(err(400, { message: 'bad_request', cause: [{ code: 1, description: 'payer_email is invalid' }] }));
+    expect(msg).toContain('bad_request · payer_email is invalid');
   });
 });

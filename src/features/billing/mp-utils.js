@@ -70,3 +70,41 @@ export function mapAuthorizedPayments(results) {
     };
   });
 }
+
+/**
+ * Mensagem para quem tentou assinar, a partir do erro da API do Mercado Pago.
+ * Casos comuns ganham explicação própria; nos demais, mostra o motivo que o MP informou.
+ */
+export function describeCheckoutError(error) {
+  const status = Number(error?.status) || 0;
+  const d = error?.details || {};
+  const causes = Array.isArray(d.cause) ? d.cause.map((c) => c?.description || c?.message || c?.code) : [];
+  const reason = [d.message, d.error, ...causes]
+    .filter((s) => typeof s === 'string' && s.trim())
+    .filter((s, i, all) => all.indexOf(s) === i)
+    .join(' · ')
+    .slice(0, 200);
+  const text = reason.toLowerCase();
+
+  if (status === 401 || status === 403 || /access.?token|unauthorized|invalid.?token|live credentials/.test(text)) {
+    return 'O Mercado Pago não aceitou as credenciais configuradas (MP_ACCESS_TOKEN). Confira o token no .env / Vercel.';
+  }
+  if (!status || status >= 500) {
+    return 'Não foi possível abrir o pagamento no Mercado Pago agora. Tente de novo em instantes.';
+  }
+  if (/same user|mismo usuario|mesmo usu[aá]rio|cannot be the same/.test(text)) {
+    return 'Esse e-mail é da mesma conta Mercado Pago que recebe as assinaturas. Para assinar, use outra conta do Mercado Pago.';
+  }
+  if (/test user|real or test|prueba|teste|invalid users|test_user/.test(text)) {
+    return 'O Mercado Pago deste ambiente está com credenciais de TESTE: informe o e-mail de um comprador de teste (painel do Mercado Pago → sua aplicação → Contas de teste), não um e-mail real.';
+  }
+  if (/countr|pa[ií]s/.test(text)) {
+    return 'A conta Mercado Pago desse e-mail é de outro país. Use uma conta do Brasil.';
+  }
+  if (/back.?url/.test(text)) {
+    return 'O endereço de retorno foi recusado. Confira NEXT_PUBLIC_SITE_URL (precisa ser o endereço público, com https://).';
+  }
+  return reason
+    ? `O Mercado Pago recusou o pedido. Motivo informado: "${reason}".`
+    : 'O Mercado Pago recusou o pedido. Confira o e-mail informado e tente de novo.';
+}

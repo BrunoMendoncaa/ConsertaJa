@@ -85,12 +85,17 @@ Quando chegar uma migration nova em `supabase/migrations/`, cole **só ela** no 
 
 ### Testar sem cobrar de verdade
 
-1. Em **Suas integrações → Contas de teste**, crie um **vendedor** e um **comprador**.
-2. Use as credenciais do **vendedor de teste** em `MP_ACCESS_TOKEN`.
-3. Em **Meu plano**, informe o **e-mail do comprador de teste**, clique em Assinar e, no Mercado Pago, entre com o comprador de teste e pague com um cartão de teste.
-4. Volte ao sistema: a conta é liberada quando o pagamento aparece como aprovado (botão **Verificar pagamento**, se o webhook ainda não estiver configurado).
+1. Use o Access Token de **Credenciais de teste** da sua aplicação em `MP_ACCESS_TOKEN`. É a credencial do vendedor de teste que o Mercado Pago cria junto com a aplicação (também começa com `APP_USR-`).
+2. Em **Suas integrações → sua aplicação → Contas de teste**, crie uma conta **Comprador** (país Brasil).
+3. Em **Meu plano**, informe o **e-mail do comprador de teste** (não o seu e-mail real), clique em Assinar e, no Mercado Pago, entre com o comprador de teste e pague com um [cartão de teste](https://www.mercadopago.com.br/developers/pt/docs/checkout-pro/additional-content/your-integrations/test/cards) (titular `APRO`, CPF `12345678909`).
+4. Volte ao sistema: a conta é liberada quando o pagamento aparece como aprovado (botão **Verificar pagamento**, se o webhook ainda não estiver configurado). Durante o teste grátis, a 1ª cobrança fica agendada para o fim do teste.
 
-> Credenciais que começam com `APP_USR-` da sua conta principal são de **produção**: cobram de verdade.
+Erros comuns ao assinar (a tela mostra o motivo informado pelo Mercado Pago):
+
+- **E-mail real com credencial de teste** (ou o contrário): o Mercado Pago só aceita pagador e recebedor do mesmo tipo. Em teste, use o e-mail do comprador de teste.
+- **Pagador igual ao recebedor**: o e-mail não pode ser o da conta que recebe as assinaturas.
+
+> Para cobrar de verdade, ative as **Credenciais de produção** da aplicação e troque o `MP_ACCESS_TOKEN` na Vercel.
 
 ## Rodando localmente
 

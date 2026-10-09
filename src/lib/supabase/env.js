@@ -2,7 +2,13 @@
 export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 export const SUPABASE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 // Endereço público do sistema. Aceita "conserta-ja.vercel.app" sem o https:// (completa sozinho).
-const RAW_SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').trim().replace(/\/+$/, '');
+// Sem NEXT_PUBLIC_SITE_URL, na Vercel usa o domínio de produção do projeto (variável de sistema da Vercel).
+const RAW_SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL
+  || process.env.VERCEL_PROJECT_PRODUCTION_URL
+  || process.env.VERCEL_URL
+  || 'http://localhost:3000'
+).trim().replace(/\/+$/, '');
 export const SITE_URL = /^https?:\/\//i.test(RAW_SITE_URL) ? RAW_SITE_URL : `https://${RAW_SITE_URL}`;
 
 export function assertSupabaseEnv() {
