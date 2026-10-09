@@ -1,5 +1,5 @@
 import { verifyWebhookSignature, parseWebhook } from '@/features/billing/mp-utils';
-import { syncSubscription } from '@/features/billing/sync';
+import { syncSubscription, assistanceIdOf, cancelSupersededSubscriptions } from '@/features/billing/sync';
 import { getAuthorizedPayment } from '@/lib/mercadopago';
 import { logError } from '@/lib/logger';
 
@@ -42,11 +42,17 @@ export async function POST(request) {
   if (!dataId) return Response.json({ ok: true, ignored: 'sem id' });
 
   try {
+    let preapprovalId = null;
     if (type === 'subscription_preapproval') {
-      await syncSubscription(dataId);
+      preapprovalId = dataId;
     } else if (type === 'subscription_authorized_payment') {
       const invoice = await getAuthorizedPayment(dataId);
-      if (invoice?.preapproval_id) await syncSubscription(String(invoice.preapproval_id));
+      if (invoice?.preapproval_id) preapprovalId = String(invoice.preapproval_id);
+    }
+    if (preapprovalId) {
+      await syncSubscription(preapprovalId);
+      const assistanceId = await assistanceIdOf(preapprovalId);
+      if (assistanceId) await cancelSupersededSubscriptions(assistanceId); // uma assinatura por assistência
     }
     // Outros tipos (ex.: payment) não mudam o acesso: a fatura da assinatura já cobre.
     console.info(JSON.stringify({ level: 'info', context: 'billing.webhook', message: 'aviso processado', type, dataId, at: new Date().toISOString() }));

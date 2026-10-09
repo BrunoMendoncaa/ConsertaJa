@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isMercadoPagoConfigured } from '@/lib/mercadopago';
-import { syncSubscription } from '@/features/billing/sync';
+import { syncSubscription, cancelSupersededSubscriptions } from '@/features/billing/sync';
 import { logError } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -33,13 +33,15 @@ export async function GET(request) {
   const since = new Date(Date.now() - PENDING_DAYS * 86400000).toISOString();
   const [current, pending] = await Promise.all([
     admin.from('assistances').select('id, mp_preapproval_id').not('mp_preapproval_id', 'is', null),
-    admin.from('billing_subscriptions').select('assistance_id, provider_id').eq('status', 'pending').gte('created_at', since),
+    admin.from('billing_subscriptions').select('assistance_id, provider_id')
+      .or(`status.in.(authorized,paused),and(status.eq.pending,created_at.gte."${since}")`),
   ]);
   if (current.error || pending.error) {
     const ref = logError('billing.cron', current.error || pending.error);
     return Response.json({ error: 'falha ao listar assinaturas', ref }, { status: 500 });
   }
 
+  // Confere a vigente, todas as autorizadas/pausadas e os pagamentos iniciados nos últimos dias.
   // Agrupa por assistência: as assinaturas de uma mesma assistência são conferidas uma de
   // cada vez (todas gravam na mesma linha); assistências diferentes rodam em paralelo.
   const groups = new Map();
@@ -49,10 +51,10 @@ export async function GET(request) {
   };
   (current.data || []).forEach((r) => add(r.id, r.mp_preapproval_id));
   (pending.data || []).forEach((r) => add(r.assistance_id, r.provider_id));
-  const queue = [...groups.values()].map((set) => [...set]);
+  const queue = [...groups.entries()].map(([assistanceId, set]) => [assistanceId, [...set]]);
 
-  const result = { total: queue.reduce((n, ids) => n + ids.length, 0), synced: 0, ignored: 0, failed: 0 };
-  const syncGroup = async (ids) => {
+  const result = { total: queue.reduce((n, [, ids]) => n + ids.length, 0), synced: 0, ignored: 0, failed: 0, canceled: 0 };
+  const syncGroup = async ([assistanceId, ids]) => {
     for (const id of ids) {
       try {
         await syncSubscription(id);
@@ -66,6 +68,11 @@ export async function GET(request) {
         }
       }
     }
+    // Uma assinatura por assistência: cancela no Mercado Pago as autorizadas que sobraram.
+    result.canceled += await cancelSupersededSubscriptions(assistanceId).catch((error) => {
+      logError('billing.cron', error, { assistanceId });
+      return 0;
+    });
   };
   for (let i = 0; i < queue.length; i += CONCURRENCY) {
     await Promise.all(queue.slice(i, i + CONCURRENCY).map(syncGroup));

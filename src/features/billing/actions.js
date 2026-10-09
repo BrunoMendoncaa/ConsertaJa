@@ -22,10 +22,16 @@ const checkoutSchema = z.object({
 
 /** Cria a assinatura no Mercado Pago (pendente) e leva o dono para pagar lá. */
 export async function startCheckout(_prev, formData) {
-  const { assistance, user } = await requireStaff(MANAGER_ROLES);
+  const { supabase, assistance, user } = await requireStaff(MANAGER_ROLES);
   const parsed = parseForm(checkoutSchema, formData);
   if (!parsed.data) return parsed;
   if (!isMercadoPagoConfigured()) return { ok: false, error: NOT_CONFIGURED };
+
+  // Uma assinatura por assistência: não cria outra enquanto a atual está valendo.
+  const { data: current } = await supabase.rpc('billing_status');
+  if (current?.has_subscription && ['trial', 'active'].includes(current.access)) {
+    return { ok: false, error: 'Sua assistência já tem uma assinatura. A situação dela está em "Meu plano".' };
+  }
 
   const plan = PLANS[parsed.data.cycle];
   // Assinou durante o teste: a 1ª cobrança fica para o fim do teste (não perde dias).

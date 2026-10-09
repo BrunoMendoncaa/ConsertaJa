@@ -25,10 +25,10 @@ Sistema SaaS para assistências técnicas de eletrônicos e eletrodomésticos: o
 
 ```text
 supabase/
-  migrations/        13 migrations em ordem (base, tenancy, clientes, OS, storage, orçamentos, portal, caixa, permissões, garantia no portal, assinatura, travas da assinatura, nome TecnoFix)
+  migrations/        14 migrations em ordem (base, tenancy, clientes, OS, storage, orçamentos, portal, caixa, permissões, garantia no portal, assinatura, travas da assinatura, nome TecnoFix, uma assinatura por assistência)
   instalacao/        as migrations juntas para colar no SQL Editor (gerado por npm run db:sql-instalacao)
   seed.sql           2 assistências fictícias, usuários, OS em vários status, orçamentos e caixa
-  tests/database/    200 testes pgTAP (isolamento entre tenants, OS, orçamento, portal, garantia, caixa, assinatura)
+  tests/database/    208 testes pgTAP (isolamento entre tenants, OS, orçamento, portal, garantia, caixa, assinatura)
 src/
   app/               rotas: site, login, onboarding, convite, /painel (equipe) e /a/[slug] (portal do cliente)
   features/          regra de negócio por domínio: actions.js (Server Actions), queries.js, components/
@@ -71,6 +71,7 @@ Quando chegar uma migration nova em `supabase/migrations/`, cole **só ela** no 
 | `20261008140000_billing.sql` | Teste grátis de 14 dias e assinatura pelo Mercado Pago (quem já usa ganha 14 dias a partir da aplicação). |
 | `20261009120000_billing_lock_order.sql` | Conferências simultâneas da assinatura sem travamento (deadlock). |
 | `20261009130000_nome_tecnofix.sql` | Novo nome do produto (TecnoFix) na mensagem de conta sem assinatura e endereço `/a/tecnofix` reservado. |
+| `20261009140000_billing_uma_assinatura.sql` | Uma assinatura vigente por assistência: assinar de novo depois de cancelar volta a valer, e assinaturas antigas não tomam o lugar da mais nova. |
 
 ## Assinatura do TecnoFix (Mercado Pago)
 
@@ -84,7 +85,7 @@ Quando chegar uma migration nova em `supabase/migrations/`, cole **só ela** no 
 1. Em [Mercado Pago Developers](https://www.mercadopago.com.br/developers) → **Suas integrações** → sua aplicação (produto Assinaturas), copie o **Access Token** para `MP_ACCESS_TOKEN` (no `.env` e na Vercel).
 2. Com o sistema publicado, em **Webhooks → Configurar notificações**, cadastre `https://SEU-DOMINIO/api/mercadopago/webhook`, marque **Planos e assinaturas** e copie a **assinatura secreta** para `MP_WEBHOOK_SECRET`.
 3. Aplique as migrations `20261008140000_billing.sql` e `20261009120000_billing_lock_order.sql` (tabela em "Atualizando um banco que já está em uso").
-4. Na Vercel, crie `CRON_SECRET` (um texto aleatório longo, ex.: o resultado de `node -e "console.log(crypto.randomUUID()+crypto.randomUUID())"`) e faça um novo deploy. Todo dia às 07:00 (Brasília) a Vercel chama `/api/cron/assinaturas` (configurado em `vercel.json`), que confere no Mercado Pago as assinaturas vigentes e os pagamentos iniciados nos últimos 3 dias. É a rede de segurança caso um aviso (webhook) se perca — por exemplo, com credenciais de teste o Mercado Pago muitas vezes não envia avisos.
+4. Na Vercel, crie `CRON_SECRET` (um texto aleatório longo, ex.: o resultado de `node -e "console.log(crypto.randomUUID()+crypto.randomUUID())"`) e faça um novo deploy. Todo dia às 07:00 (Brasília) a Vercel chama `/api/cron/assinaturas` (configurado em `vercel.json`), que confere no Mercado Pago as assinaturas vigentes e os pagamentos iniciados nos últimos 3 dias. Também garante **uma assinatura por assistência**: se o dono assinou mais de uma vez, a mais nova vale e as outras são canceladas no Mercado Pago (para não cobrar em dobro). É a rede de segurança caso um aviso (webhook) se perca — por exemplo, com credenciais de teste o Mercado Pago muitas vezes não envia avisos.
 
 ### Testar sem cobrar de verdade
 

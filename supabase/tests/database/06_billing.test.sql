@@ -197,6 +197,55 @@ select is(public.billing_apply_sync('pre-c', 'cccccccc-0000-4000-8000-0000000000
   jsonb_build_array(jsonb_build_object('id', 'inv-c1', 'amount', 49, 'status', 'approved', 'paid_at', now()))),
   'active', '1ª cobrança aprovada: ativa');
 
+-- ---------------------------------------------------------------------------
+-- Uma assinatura vigente por assistência (caso real de 09/10)
+-- ---------------------------------------------------------------------------
+reset role;
+insert into public.assistances (id, name, slug) values ('dddddddd-0000-4000-8000-000000000000', 'Tenant D', 'tenant-d-test');
+set local role service_role;
+select public.billing_register_checkout('dddddddd-0000-4000-8000-000000000000', 'pre-d1', 'monthly', 49, 'd@testuser.com', null, null);
+select public.billing_register_checkout('dddddddd-0000-4000-8000-000000000000', 'pre-d2', 'monthly', 49, 'd@testuser.com', null, null);
+select public.billing_register_checkout('dddddddd-0000-4000-8000-000000000000', 'pre-d3', 'monthly', 49, 'd@testuser.com', null, null);
+reset role;
+-- ordem de criação: d1 < d2 < d3
+update public.billing_subscriptions set created_at = now() - interval '3 hours' where provider_id = 'pre-d1';
+update public.billing_subscriptions set created_at = now() - interval '2 hours' where provider_id = 'pre-d2';
+update public.billing_subscriptions set created_at = now() - interval '1 hour'  where provider_id = 'pre-d3';
+set local role service_role;
+select public.billing_apply_sync('pre-d1', 'dddddddd-0000-4000-8000-000000000000', 'authorized', '[]');
+select is(public.billing_apply_sync('pre-d1', 'dddddddd-0000-4000-8000-000000000000', 'cancelled', '[]'), 'trial',
+  'cancelou durante o teste: continua no teste');
+reset role;
+select is((select subscription_status from public.assistances where id = 'dddddddd-0000-4000-8000-000000000000'), 'canceled',
+  'status cancelado');
+set local role service_role;
+select is(public.billing_apply_sync('pre-d2', 'dddddddd-0000-4000-8000-000000000000', 'authorized', '[]'), 'trial',
+  'assinou de novo durante o teste');
+reset role;
+select results_eq($$select subscription_status, mp_preapproval_id from public.assistances where id = 'dddddddd-0000-4000-8000-000000000000'$$,
+  $$values ('trialing'::text, 'pre-d2'::text)$$, 'assinar de novo tira do cancelado (antes ficava preso e a tela oferecia assinar outra vez)');
+set local role service_role;
+select public.billing_apply_sync('pre-d3', 'dddddddd-0000-4000-8000-000000000000', 'authorized', '[]');
+reset role;
+select is((select mp_preapproval_id from public.assistances where id = 'dddddddd-0000-4000-8000-000000000000'), 'pre-d3',
+  'assinatura autorizada mais nova assume');
+set local role service_role;
+select public.billing_apply_sync('pre-d2', 'dddddddd-0000-4000-8000-000000000000', 'authorized', '[]');
+select public.billing_apply_sync('pre-d1', 'dddddddd-0000-4000-8000-000000000000', 'cancelled', '[]');
+reset role;
+select results_eq($$select subscription_status, mp_preapproval_id from public.assistances where id = 'dddddddd-0000-4000-8000-000000000000'$$,
+  $$values ('trialing'::text, 'pre-d3'::text)$$, 'conferir assinaturas antigas não troca a vigente (não fica indo e voltando)');
+set local role service_role;
+select public.billing_apply_sync('pre-d3', 'dddddddd-0000-4000-8000-000000000000', 'cancelled', '[]');
+reset role;
+select is((select subscription_status from public.assistances where id = 'dddddddd-0000-4000-8000-000000000000'), 'canceled',
+  'vigente cancelada: conta cancelada');
+set local role service_role;
+select public.billing_apply_sync('pre-d2', 'dddddddd-0000-4000-8000-000000000000', 'authorized', '[]');
+reset role;
+select results_eq($$select subscription_status, mp_preapproval_id from public.assistances where id = 'dddddddd-0000-4000-8000-000000000000'$$,
+  $$values ('trialing'::text, 'pre-d2'::text)$$, 'outra autorizada assume quando a vigente foi cancelada');
+
 reset role;
 select * from finish();
 rollback;
