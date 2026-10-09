@@ -32,33 +32,43 @@ export async function GET(request) {
   const admin = createAdminClient();
   const since = new Date(Date.now() - PENDING_DAYS * 86400000).toISOString();
   const [current, pending] = await Promise.all([
-    admin.from('assistances').select('mp_preapproval_id').not('mp_preapproval_id', 'is', null),
-    admin.from('billing_subscriptions').select('provider_id').eq('status', 'pending').gte('created_at', since),
+    admin.from('assistances').select('id, mp_preapproval_id').not('mp_preapproval_id', 'is', null),
+    admin.from('billing_subscriptions').select('assistance_id, provider_id').eq('status', 'pending').gte('created_at', since),
   ]);
   if (current.error || pending.error) {
     const ref = logError('billing.cron', current.error || pending.error);
     return Response.json({ error: 'falha ao listar assinaturas', ref }, { status: 500 });
   }
 
-  const ids = [...new Set([
-    ...(current.data || []).map((r) => r.mp_preapproval_id),
-    ...(pending.data || []).map((r) => r.provider_id),
-  ])];
+  // Agrupa por assistência: as assinaturas de uma mesma assistência são conferidas uma de
+  // cada vez (todas gravam na mesma linha); assistências diferentes rodam em paralelo.
+  const groups = new Map();
+  const add = (assistanceId, preapprovalId) => {
+    if (!groups.has(assistanceId)) groups.set(assistanceId, new Set());
+    groups.get(assistanceId).add(preapprovalId);
+  };
+  (current.data || []).forEach((r) => add(r.id, r.mp_preapproval_id));
+  (pending.data || []).forEach((r) => add(r.assistance_id, r.provider_id));
+  const queue = [...groups.values()].map((set) => [...set]);
 
-  const result = { total: ids.length, synced: 0, ignored: 0, failed: 0 };
-  for (let i = 0; i < ids.length; i += CONCURRENCY) {
-    const batch = ids.slice(i, i + CONCURRENCY);
-    const settled = await Promise.allSettled(batch.map((id) => syncSubscription(id)));
-    settled.forEach((s, j) => {
-      if (s.status === 'fulfilled') {
+  const result = { total: queue.reduce((n, ids) => n + ids.length, 0), synced: 0, ignored: 0, failed: 0 };
+  const syncGroup = async (ids) => {
+    for (const id of ids) {
+      try {
+        await syncSubscription(id);
         result.synced += 1;
-      } else if (s.reason?.status === 404) {
-        result.ignored += 1; // não existe nesta conta do Mercado Pago (ex.: assinatura de teste)
-      } else {
-        result.failed += 1;
-        logError('billing.cron', s.reason, { preapprovalId: batch[j], mp: s.reason?.details });
+      } catch (error) {
+        if (error?.status === 404) {
+          result.ignored += 1; // não existe nesta conta do Mercado Pago (ex.: assinatura de teste)
+        } else {
+          result.failed += 1;
+          logError('billing.cron', error, { preapprovalId: id, mp: error?.details });
+        }
       }
-    });
+    }
+  };
+  for (let i = 0; i < queue.length; i += CONCURRENCY) {
+    await Promise.all(queue.slice(i, i + CONCURRENCY).map(syncGroup));
   }
 
   console.info(JSON.stringify({ level: 'info', context: 'billing.cron', ...result, at: new Date().toISOString() }));
