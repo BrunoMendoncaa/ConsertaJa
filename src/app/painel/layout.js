@@ -6,6 +6,8 @@ import { switchAssistance } from '@/features/tenancy/actions';
 import { getBillingStatus } from '@/features/billing/queries';
 import { BillingNotice } from '@/features/billing/components/billing-notice';
 import { ACCESS_LABELS } from '@/lib/billing';
+import { ProfileNotice } from '@/features/tenancy/components/profile-notice';
+import { missingProfileFields } from '@/features/tenancy/profile';
 
 export const metadata = { title: { default: 'Painel', template: '%s · TecnoFix' } };
 
@@ -59,7 +61,7 @@ export default async function PainelLayout({ children }) {
       switcher={switcher}
       planLabel={planLabel}
       planHref={isManager ? '/painel/plano' : null}
-      notice={<BillingNotice billing={billing} />}
+      notice={<><BillingNotice billing={billing} /><ProfileNotice missing={missingProfileFields(ctx.assistance)} canManage={isManager} /></>}
     >
       {children}
     </AppShell>

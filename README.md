@@ -34,6 +34,7 @@ src/
   features/          regra de negócio por domínio: actions.js (Server Actions), queries.js, components/
   components/        UI compartilhada e layout
   lib/               clientes Supabase, auth, sessão do portal, dinheiro, telefone, CPF/CNPJ, datas, erros
+public/ajuda/        prints e vídeos da central de ajuda ("Como usar"), com dados fictícios
   proxy.js           renova a sessão e protege /painel (antigo middleware)
 tests/               unitários (Vitest) e roteiros de ponta a ponta (Playwright)
 docs/                planejamento e arquitetura
@@ -99,12 +100,21 @@ Erros comuns ao assinar (a tela mostra o motivo informado pelo Mercado Pago):
 - **E-mail real com credencial de teste** (ou o contrário): o Mercado Pago só aceita pagador e recebedor do mesmo tipo. Em teste, use o e-mail do comprador de teste.
 - **Pagador igual ao recebedor**: o e-mail não pode ser o da conta que recebe as assinaturas.
 
-### Passar para produção (cobrar de verdade)
+### Passar para produção (cobrar de verdade) com domínio próprio
 
-1. No Mercado Pago, ative as **Credenciais de produção** da aplicação e troque o `MP_ACCESS_TOKEN` na Vercel (e no `.env`) pelo Access Token de produção. Faça um novo deploy.
-2. Confira se o webhook tem a mesma URL em **modo produção** e se o `MP_WEBHOOK_SECRET` continua o da aplicação.
-3. Rode **uma vez** no SQL Editor o arquivo `supabase/manutencao/limpar-assinaturas-de-teste.sql`. As assinaturas feitas em teste não existem na conta de produção; o script apaga esse histórico e volta as assistências ao teste grátis (mantendo a data de fim do teste). Não mexe em OS, clientes nem caixa.
-4. Faça uma assinatura real com **outra** conta do Mercado Pago (a sua conta é a que recebe e não pode pagar a si mesma) e, se quiser, cancele em seguida em **Meu plano**.
+Faça na ordem (exemplo com `tecnofix.pro`):
+
+1. **Domínio na Vercel:** projeto → Settings → Domains → adicione `tecnofix.pro` e `www.tecnofix.pro` (deixe o `www` redirecionando para o principal). No site onde comprou o domínio, crie os registros DNS que a Vercel mostrar (normalmente um registro **A** para `tecnofix.pro` e um **CNAME** para `www`). Espere aparecer "Valid Configuration".
+2. **Endereço do sistema:** na Vercel, `NEXT_PUBLIC_SITE_URL=https://tecnofix.pro` e faça um novo deploy. A partir daí, links antigos de `conserta-ja.vercel.app` (portal do cliente, convites, QR codes) levam para o mesmo caminho no domínio novo; `/api` não é redirecionado (`next.config.mjs`).
+3. **Supabase → Authentication → URL Configuration:** Site URL `https://tecnofix.pro` e, em Redirect URLs, `https://tecnofix.pro/**` (mantenha o endereço antigo durante a transição).
+4. **E-mail próprio (obrigatório para clientes reais):** o envio padrão do Supabase só entrega para quem é da sua equipe no Supabase e no máximo 2 e-mails por hora. Configure um SMTP (ex.: Resend ou Brevo) em Authentication → Emails → SMTP Settings, com remetente do domínio (ex.: `nao-responda@tecnofix.pro`) e os registros SPF/DKIM que o provedor indicar.
+5. **Mercado Pago:** em Suas integrações → aplicação → **Ativar credenciais** (produção). O dinheiro cai na conta Mercado Pago dona da aplicação. Copie o **Access Token de produção** para `MP_ACCESS_TOKEN` na Vercel (nunca no código nem em mensagens).
+6. **Webhook de produção:** Webhooks → Configurar notificações → URL do modo produtivo `https://tecnofix.pro/api/mercadopago/webhook`, evento **Planos e assinaturas** → Salvar. Se a assinatura secreta mudar, atualize `MP_WEBHOOK_SECRET`. Use **Simular notificação**: deve responder 200.
+7. **Novo deploy** na Vercel (para pegar as variáveis).
+8. Rode **uma vez** no SQL Editor o arquivo `supabase/manutencao/limpar-assinaturas-de-teste.sql`. As assinaturas feitas em teste não existem na conta de produção; o script apaga esse histórico e volta as assistências ao teste grátis (mantendo a data de fim do teste). Não mexe em OS, clientes nem caixa.
+9. **Teste real:** assine com **outra** conta do Mercado Pago (a dona da aplicação é a que recebe e não pode pagar a si mesma). Durante o teste grátis a cobrança fica agendada para o fim do teste; para ver uma cobrança na hora, use uma assistência com o teste vencido, depois devolva o valor pelo Mercado Pago e cancele em **Meu plano**.
+
+A conferência diária (`vercel.json`) não precisa de mudança.
 
 ## Rodando localmente
 
@@ -208,6 +218,25 @@ Os roteiros cobrem: login, abertura de OS pelo assistente, upload de foto, compr
 | Administrador | Igual ao proprietário, exceto convidar administradores e alterar proprietários |
 | Técnico | OS, diagnóstico, orçamentos, fotos, senha de desbloqueio, compra de peças e recebimentos. Não vê saldo nem relatórios |
 | Atendente | Clientes, abertura e entrega de OS, recebimentos, decisão do cliente no balcão |
+
+## Central de ajuda ("Como usar")
+
+Link fixo no rodapé do menu do painel (`/painel/ajuda`). Cada pessoa vê só os guias das telas que a função dela abre.
+
+- **Textos:** `src/features/help/guides.js` (um objeto por guia: passos, dicas, tabela, funções, guias relacionados). Texto entre `**asteriscos**` sai em negrito.
+- **Prints e vídeos:** em `public/ajuda/` (imagens `.webp` em 2x; vídeos `.mp4` H.264 sem som, com capa `.webp`). Ao trocar um arquivo, atualize largura e altura em `src/features/help/media-manifest.js`.
+- **Testes:** `tests/help.test.js` confere arquivos, permissões (o botão "Abrir…" de um guia só aparece para quem consegue abrir a tela) e a busca.
+- Quando uma tela mudar de nome de botão ou de regra, ajuste o guia correspondente.
+
+## Cadastro da assistência (primeiro acesso)
+
+- Depois de **Criar assistência**, a próxima tela é **Configurações** (`/painel/configuracoes?inicio=1`), com boas-vindas.
+- **Obrigatórios:** WhatsApp ou telefone, e endereço completo (CEP, rua, número, bairro, cidade e UF). A regra fica em `src/features/tenancy/profile.js` e é validada ao salvar.
+- O CEP preenche o endereço pelo ViaCEP. Se a consulta falhar, preenche-se à mão.
+- **Nada é travado.** Enquanto faltar algo:
+  - proprietário e administrador caem em Configurações ao entrar ou ao trocar de assistência (`src/features/tenancy/landing.js`);
+  - eles também veem um aviso em todas as telas;
+  - técnicos e atendentes veem o aviso só no Dashboard.
 
 ## Próximos passos (fora do escopo atual, com os ganchos prontos)
 

@@ -15,7 +15,9 @@ export function TransactionForm({ role, serviceOrderId, suppliers = [], only, de
   const categories = allowedCategories(role).filter((c) => !only || only.includes(c));
   if (!categories.length) return null;
   return (
-    <ActionForm action={createCashTransaction} resetOnSuccess className="grid gap-4 sm:grid-cols-2">
+    // Duas colunas só quando o próprio quadro tem espaço (na coluna estreita da OS fica uma só).
+    <div className="@container">
+    <ActionForm action={createCashTransaction} resetOnSuccess className="grid gap-4 @md:grid-cols-2">
       {serviceOrderId && <input type="hidden" name="service_order_id" value={serviceOrderId} />}
       <Field label="Categoria" name="category" required>
         <Select id="category" name="category" defaultValue={defaultCategory || categories[0]}>
@@ -33,7 +35,7 @@ export function TransactionForm({ role, serviceOrderId, suppliers = [], only, de
       <Field label="Data" name="occurred_at" required>
         <Input id="occurred_at" name="occurred_at" type="date" defaultValue={todayISO()} max={todayISO()} />
       </Field>
-      <Field label="Descrição" name="description" required className="sm:col-span-2">
+      <Field label="Descrição" name="description" required className="@md:col-span-2">
         <Input id="description" name="description" defaultValue={defaultDescription || ''} placeholder="Ex.: Pagamento do conserto, Display iPhone 13…" />
       </Field>
       {!serviceOrderId && (
@@ -52,9 +54,10 @@ export function TransactionForm({ role, serviceOrderId, suppliers = [], only, de
       <Field label="Quantidade (peças)" name="quantity">
         <Input id="quantity" name="quantity" inputMode="decimal" placeholder="Opcional" />
       </Field>
-      <div className="flex items-end sm:col-span-2">
+      <div className="flex items-end @md:col-span-2">
         <SubmitButton pendingText="Registrando...">{submitLabel}</SubmitButton>
       </div>
     </ActionForm>
+    </div>
   );
 }

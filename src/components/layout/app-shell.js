@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, ClipboardList, Users, Smartphone, FileText, Wallet, ChartColumn, UserCog,
-  Settings, LogOut, Menu, X, Plus, Truck, ChevronDown, CreditCard,
+  Settings, LogOut, Menu, X, Plus, Truck, ChevronDown, CreditCard, CircleHelp,
 } from 'lucide-react';
 import { Logo } from './logo';
 import { cn } from '@/lib/cn';
@@ -44,9 +44,11 @@ function NavLinks({ items, onNavigate }) {
 
 export function AppShell({ items, assistanceName, userName, roleLabel, switcher, planLabel, planHref, notice, children }) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const onHelp = pathname.startsWith('/painel/ajuda');
 
   const sidebar = (
-    <div className="flex h-full flex-col gap-6 px-4 py-5">
+    <div className="flex h-full flex-col gap-4 px-4 py-4">
       <Link href="/painel" className="px-2" onClick={() => setOpen(false)}>
         <Logo />
       </Link>
@@ -72,7 +74,18 @@ export function AppShell({ items, assistanceName, userName, roleLabel, switcher,
         <NavLinks items={items} onNavigate={() => setOpen(false)} />
       </div>
 
-      <div className="border-t border-slate-200 pt-4">
+      <div className="border-t border-slate-200 pt-3">
+        {/* Fica fixo no rodapé do menu para nunca sumir quando a lista de telas é longa. */}
+        <Link
+          href="/painel/ajuda"
+          onClick={() => setOpen(false)}
+          className={cn(
+            'mb-1 flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+            onHelp ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+          )}
+        >
+          <CircleHelp className="size-4 shrink-0" aria-hidden="true" /> Como usar
+        </Link>
         <Link href="/painel/minha-conta" onClick={() => setOpen(false)} className="block truncate px-3 text-sm font-medium text-slate-800 hover:text-brand-700">
           {userName || 'Minha conta'}
         </Link>

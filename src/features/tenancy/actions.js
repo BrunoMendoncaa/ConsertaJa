@@ -10,6 +10,8 @@ import {
   parseForm, z, optionalText, optionalPhone, email, document, optionalMoney, optionalInt, uuid,
 } from '@/lib/forms';
 import { MANAGER_ROLES } from '@/lib/constants';
+import { profileFieldErrors, formatCep } from './profile';
+import { landingPath } from './landing';
 
 // ---------------------------------------------------------------- Onboarding
 const assistanceSchema = z.object({
@@ -26,14 +28,20 @@ export async function createAssistance(_prev, formData) {
   const supabase = await createClient();
   const { error } = await supabase.rpc('create_assistance', { p_name: parsed.data.name, p_slug: parsed.data.slug });
   if (error) return actionError('tenancy.createAssistance', error, 'Não foi possível criar a assistência.');
-  redirect('/painel');
+  // O menu (nome da assistência, plano) precisa ser refeito para a assistência nova.
+  revalidatePath('/painel', 'layout');
+  // Próximo passo obrigatório: dados da loja (WhatsApp, endereço, logo…) em Configurações.
+  redirect('/painel/configuracoes?inicio=1');
 }
 
 export async function switchAssistance(formData) {
   const id = String(formData.get('assistance_id') || '');
   const supabase = await createClient();
   await supabase.rpc('switch_assistance', { p_assistance_id: id });
-  redirect('/painel');
+  // Sem isto o menu continuava mostrando a assistência anterior até recarregar a página.
+  revalidatePath('/painel', 'layout');
+  const { data } = await supabase.auth.getClaims();
+  redirect(await landingPath(supabase, data?.claims?.sub));
 }
 
 // ---------------------------------------------------------------- Convites
@@ -42,6 +50,7 @@ export async function acceptInvitation(_prev, formData) {
   const supabase = await createClient();
   const { error } = await supabase.rpc('accept_invitation', { p_token: token });
   if (error) return actionError('tenancy.acceptInvitation', error, 'Não foi possível aceitar o convite.');
+  revalidatePath('/painel', 'layout');
   redirect('/painel');
 }
 
@@ -144,6 +153,22 @@ export async function updateAssistanceSettings(_prev, formData) {
     cidade: formData.get('cidade'), uf: formData.get('uf'),
   });
 
+  if (!addr.success) {
+    const fieldErrors = {};
+    for (const issue of addr.error.issues) fieldErrors[issue.path.join('.')] ??= issue.message;
+    return { ok: false, error: 'Revise os campos destacados.', fieldErrors };
+  }
+  // Obrigatórios: WhatsApp ou telefone, e endereço completo (saem nos documentos e no portal).
+  const required = profileFieldErrors(parsed.data, addr.data);
+  if (Object.keys(required).length) {
+    return { ok: false, error: 'Preencha os dados obrigatórios da assistência.', fieldErrors: required };
+  }
+  const address = {
+    ...addr.data,
+    cep: formatCep(addr.data.cep),
+    uf: addr.data.uf.toUpperCase(),
+  };
+
   const { portal_show_photos, ...fields } = parsed.data;
   const { error } = await supabase
     .from('assistances')
@@ -151,13 +176,17 @@ export async function updateAssistanceSettings(_prev, formData) {
       ...fields,
       default_budget_validity_days: fields.default_budget_validity_days ?? 10,
       default_warranty_days: fields.default_warranty_days ?? 90,
-      address: addr.success ? Object.fromEntries(Object.entries(addr.data).filter(([, v]) => v)) : assistance.address,
+      address: Object.fromEntries(Object.entries(address).filter(([, v]) => v)),
       settings: { ...(assistance.settings || {}), portal_show_photos },
     })
     .eq('id', assistance.id);
   if (error) return actionError('tenancy.updateSettings', error, 'Não foi possível salvar as configurações.');
 
   revalidatePath('/painel', 'layout');
+  // Veio do primeiro acesso (ou do aviso de cadastro incompleto): volta para o painel.
+  const from = formData.get('apos');
+  if (from === 'inicio') redirect('/painel?bemvindo=1');
+  if (from === 'completar') redirect('/painel?dados=ok');
   return { ok: true, message: 'Configurações salvas.' };
 }
 

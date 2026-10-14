@@ -24,7 +24,7 @@ export default async function OnboardingPage({ searchParams }) {
       <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <h1 className="text-xl font-semibold text-slate-900">Cadastre sua assistência</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Você será o proprietário e poderá convidar técnicos e atendentes depois.
+          Você será o proprietário e poderá convidar técnicos e atendentes depois. No próximo passo, você completa os dados da loja: WhatsApp, endereço e logo.
         </p>
         <ActionForm action={createAssistance} className="mt-6 space-y-4">
           <SlugFields siteUrl={SITE_URL} />

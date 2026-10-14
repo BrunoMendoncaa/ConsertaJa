@@ -10,3 +10,6 @@ supabase/.temp
 .DS_Store
 .vercel
 tests/e2e/screenshots
+
+# Material de divulgação (imagens e vídeos) fica fora do GitHub
+Divulgacao/

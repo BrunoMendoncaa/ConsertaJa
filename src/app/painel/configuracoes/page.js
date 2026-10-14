@@ -1,16 +1,20 @@
+import Link from 'next/link';
+import { Store } from 'lucide-react';
 import { requireStaff } from '@/lib/auth';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { ActionForm, SubmitButton } from '@/components/ui/action-form';
 import { Field } from '@/components/ui/field';
-import { Input, Textarea, Select, Checkbox } from '@/components/ui/input';
+import { Input, Textarea, Checkbox } from '@/components/ui/input';
 import { CopyButton } from '@/components/ui/copy-button';
 import { LogoUploader } from '@/features/tenancy/components/logo-uploader';
+import { AddressFields } from '@/features/tenancy/components/address-fields';
+import { missingProfileFields } from '@/features/tenancy/profile';
 import { updateAssistanceSettings, addCategory, toggleCategory } from '@/features/tenancy/actions';
 import { getCategories, logoUrl } from '@/features/tenancy/queries';
 import { SITE_URL } from '@/lib/supabase/env';
 import { moneyInputValue } from '@/lib/money';
-import { MANAGER_ROLES, BR_STATES } from '@/lib/constants';
+import { MANAGER_ROLES } from '@/lib/constants';
 
 export const metadata = { title: 'Configurações' };
 
@@ -26,20 +30,42 @@ function Section({ title, description, children }) {
   );
 }
 
-export default async function SettingsPage() {
+export default async function SettingsPage({ searchParams }) {
+  const sp = await searchParams;
   const { assistance: a } = await requireStaff(MANAGER_ROLES);
   const categories = await getCategories({ includeInactive: true });
-  const addr = a.address || {};
   const portalUrl = `${SITE_URL}/a/${a.slug}`;
+  const missing = missingProfileFields(a);
+  // inicio: acabou de criar a assistência · completar: veio do aviso/login com cadastro incompleto
+  const firstAccess = sp?.inicio === '1';
+  const after = firstAccess ? 'inicio' : sp?.completar === '1' && missing.length ? 'completar' : null;
 
   return (
     <>
       <PageHeader title="Configurações" description="Identidade da assistência, portal do cliente e padrões do orçamento." />
 
+      {(firstAccess || missing.length > 0) && (
+        <div className="mb-6 rounded-xl border border-brand-200 bg-brand-50 px-5 py-4 text-brand-900">
+          <p className="flex items-center gap-2 font-semibold">
+            <Store className="size-5 shrink-0" aria-hidden="true" />
+            {firstAccess ? `Bem-vindo ao TecnoFix! Agora, os dados da ${a.name}` : `Falta completar o cadastro: ${missing.join(' e ')}`}
+          </p>
+          <p className="mt-1.5 text-sm leading-relaxed text-brand-900/85">
+            Esses dados aparecem no comprovante de entrada, no orçamento, no certificado de garantia e no portal do cliente.
+            Preencha o <strong>WhatsApp</strong> (ou telefone) e o <strong>endereço completo</strong>, que são obrigatórios,
+            envie o <a href="#logo" className="font-medium underline">logo</a> e clique em <strong>Salvar configurações</strong>.
+          </p>
+          {firstAccess && (
+            <Link href="/painel" className="mt-2 inline-block text-sm text-brand-800 underline-offset-4 hover:underline">Preencher depois</Link>
+          )}
+        </div>
+      )}
+
       <div className="grid gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardContent className="py-6">
             <ActionForm action={updateAssistanceSettings} className="space-y-6">
+              {after && <input type="hidden" name="apos" value={after} />}
               <Section title="Identidade" description="Como a assistência aparece para os clientes.">
                 <Field label="Nome fantasia" name="name" required className="sm:col-span-2">
                   <Input id="name" name="name" defaultValue={a.name} />
@@ -51,24 +77,13 @@ export default async function SettingsPage() {
                 </Field>
               </Section>
 
-              <Section title="Contato" description="Mostrado no portal, no comprovante e no orçamento.">
-                <Field label="Telefone" name="phone"><Input id="phone" name="phone" type="tel" defaultValue={a.phone || ''} /></Field>
-                <Field label="WhatsApp" name="whatsapp"><Input id="whatsapp" name="whatsapp" type="tel" defaultValue={a.whatsapp || ''} /></Field>
+              <Section title="Contato" description="Mostrado no portal, no comprovante e no orçamento. Campos com * são obrigatórios.">
+                <Field label="WhatsApp" name="whatsapp" required hint="Se a loja não tiver WhatsApp, preencha o telefone.">
+                  <Input id="whatsapp" name="whatsapp" type="tel" inputMode="tel" placeholder="(11) 98888-7777" defaultValue={a.whatsapp || ''} />
+                </Field>
+                <Field label="Telefone" name="phone"><Input id="phone" name="phone" type="tel" inputMode="tel" defaultValue={a.phone || ''} /></Field>
                 <Field label="E-mail" name="email" className="sm:col-span-2"><Input id="email" name="email" type="email" defaultValue={a.email || ''} /></Field>
-                <Field label="CEP" name="cep"><Input id="cep" name="cep" defaultValue={addr.cep || ''} /></Field>
-                <Field label="Rua" name="rua"><Input id="rua" name="rua" defaultValue={addr.rua || ''} /></Field>
-                <Field label="Número" name="numero"><Input id="numero" name="numero" defaultValue={addr.numero || ''} /></Field>
-                <Field label="Complemento" name="complemento"><Input id="complemento" name="complemento" defaultValue={addr.complemento || ''} /></Field>
-                <Field label="Bairro" name="bairro"><Input id="bairro" name="bairro" defaultValue={addr.bairro || ''} /></Field>
-                <div className="grid grid-cols-3 gap-3">
-                  <Field label="Cidade" name="cidade" className="col-span-2"><Input id="cidade" name="cidade" defaultValue={addr.cidade || ''} /></Field>
-                  <Field label="UF" name="uf">
-                    <Select id="uf" name="uf" defaultValue={addr.uf || ''}>
-                      <option value="">—</option>
-                      {BR_STATES.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
-                    </Select>
-                  </Field>
-                </div>
+                <AddressFields address={a.address || {}} />
                 <Field label="Horário de atendimento" name="business_hours" className="sm:col-span-2">
                   <Input id="business_hours" name="business_hours" defaultValue={a.business_hours || ''} placeholder="Seg a sex, 9h às 18h" />
                 </Field>
@@ -117,7 +132,7 @@ export default async function SettingsPage() {
               <CopyButton text={portalUrl} label="Copiar endereço" />
             </CardContent>
           </Card>
-          <Card>
+          <Card id="logo" className="scroll-mt-6">
             <CardHeader title="Logo" />
             <CardContent><LogoUploader assistanceId={a.id} currentUrl={logoUrl(a.logo_path, a.updated_at)} /></CardContent>
           </Card>

@@ -43,9 +43,25 @@ async function login(page, email, password = 'consertaja123') {
   const slug = await n.inputValue('#slug');
   if (slug !== 'oficina-teste-ltda') problems.push(`slug sugerido: ${slug}`);
   await n.fill('#slug', `oficina-${stamp}`);
-  await Promise.all([n.waitForURL(/\/painel$/, { timeout: 15000 }), n.click('button[type=submit]')]);
-  await expectText(n, 'Oficina Teste Ltda');
-  log('cadastro + onboarding criam a assistência e caem no painel');
+  await Promise.all([n.waitForURL(/\/painel\/configuracoes\?inicio=1$/, { timeout: 15000 }), n.click('button[type=submit]')]);
+  await expectText(n, 'Bem-vindo ao TecnoFix');
+  log('cadastro + onboarding criam a assistência e abrem Configurações');
+
+  // dados obrigatórios: WhatsApp (ou telefone) e endereço completo
+  await n.getByRole('button', { name: /Salvar configurações/ }).click();
+  await expectText(n, 'Preencha os dados obrigatórios');
+  await expectText(n, 'Informe o CEP');
+  await n.fill('#whatsapp', '(21) 99999-0000');
+  await n.fill('#cep', '20010-020');
+  await n.waitForTimeout(1500); // a busca do CEP pode preencher rua/bairro/cidade/UF sozinha
+  await n.fill('#rua', 'Rua da Assembleia');
+  await n.fill('#numero', '10');
+  await n.fill('#bairro', 'Centro');
+  await n.fill('#cidade', 'Rio de Janeiro');
+  await n.selectOption('#uf', 'RJ');
+  await Promise.all([n.waitForURL(/\/painel\?bemvindo=1$/, { timeout: 15000 }), n.getByRole('button', { name: /Salvar configurações/ }).click()]);
+  await expectText(n, 'Tudo pronto');
+  log('dados obrigatórios validados; ao salvar, volta ao painel com boas-vindas');
 
   // slug reservado
   await n.goto(`${BASE}/onboarding?nova=1`);

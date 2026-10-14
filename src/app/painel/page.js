@@ -43,6 +43,15 @@ export default async function DashboardPage({ searchParams }) {
         actions={<ButtonLink href="/painel/os/nova"><Plus className="size-4" aria-hidden="true" /> Nova OS</ButtonLink>}
       />
 
+      {sp?.bemvindo === '1' && (
+        <Alert variant="success" className="mb-6" title={`Tudo pronto! A ${assistance.name} está configurada.`}>
+          Agora é só abrir a primeira OS.{' '}
+          <Link href="/painel/os/nova" className="font-medium underline">Abrir a primeira OS</Link>
+          {' · '}
+          <Link href="/painel/ajuda/comece-por-aqui" className="font-medium underline">Ver o guia Comece por aqui</Link>
+        </Alert>
+      )}
+      {sp?.dados === 'ok' && <Alert variant="success" className="mb-6">Dados da assistência salvos.</Alert>}
       {sp?.aviso === 'sem-permissao' && <Alert variant="warning" className="mb-6">Você não tem permissão para acessar aquela página.</Alert>}
       {error && <Alert variant="error" className="mb-6">Não foi possível carregar os indicadores agora.</Alert>}
 
