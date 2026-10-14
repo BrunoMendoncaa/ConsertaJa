@@ -25,17 +25,18 @@ Sistema SaaS para assistências técnicas de eletrônicos e eletrodomésticos: o
 
 ```text
 supabase/
-  migrations/        14 migrations em ordem (base, tenancy, clientes, OS, storage, orçamentos, portal, caixa, permissões, garantia no portal, assinatura, travas da assinatura, nome TecnoFix, uma assinatura por assistência)
+  migrations/        15 migrations em ordem (base, tenancy, clientes, OS, storage, orçamentos, portal, caixa, permissões, garantia no portal, assinatura, travas da assinatura, nome TecnoFix, uma assinatura por assistência, área admin)
   instalacao/        as migrations juntas para colar no SQL Editor (gerado por npm run db:sql-instalacao)
   seed.sql           2 assistências fictícias, usuários, OS em vários status, orçamentos e caixa
-  tests/database/    208 testes pgTAP (isolamento entre tenants, OS, orçamento, portal, garantia, caixa, assinatura)
+  tests/database/    223 testes pgTAP (isolamento entre tenants, OS, orçamento, portal, garantia, caixa, assinatura, área admin)
 src/
-  app/               rotas: site, login, onboarding, convite, /painel (equipe) e /a/[slug] (portal do cliente)
+  app/               rotas: site, login, onboarding, convite, /painel (equipe), /a/[slug] (portal do cliente) e /admin (dono do TecnoFix)
   features/          regra de negócio por domínio: actions.js (Server Actions), queries.js, components/
   components/        UI compartilhada e layout
   lib/               clientes Supabase, auth, sessão do portal, dinheiro, telefone, CPF/CNPJ, datas, erros
-public/ajuda/        prints e vídeos da central de ajuda ("Como usar"), com dados fictícios
   proxy.js           renova a sessão e protege /painel (antigo middleware)
+public/ajuda/        prints e vídeos da central de ajuda ("Como usar"), com dados fictícios
+scripts/             geração do SQL de instalação e da senha da área admin (npm run admin:senha)
 tests/               unitários (Vitest) e roteiros de ponta a ponta (Playwright)
 docs/                planejamento e arquitetura
 ```
@@ -73,6 +74,7 @@ Quando chegar uma migration nova em `supabase/migrations/`, cole **só ela** no 
 | `20261009120000_billing_lock_order.sql` | Conferências simultâneas da assinatura sem travamento (deadlock). |
 | `20261009130000_nome_tecnofix.sql` | Novo nome do produto (TecnoFix) na mensagem de conta sem assinatura e endereço `/a/tecnofix` reservado. |
 | `20261009140000_billing_uma_assinatura.sql` | Uma assinatura vigente por assistência: assinar de novo depois de cancelar volta a valer, e assinaturas antigas não tomam o lugar da mais nova. |
+| `20261014120000_admin.sql` | Área admin: registro das ações do dono do TecnoFix, limite de tentativas de login e consultas de todas as assistências e usuários (só o servidor executa). |
 
 ## Assinatura do TecnoFix (Mercado Pago)
 
@@ -237,6 +239,40 @@ Link fixo no rodapé do menu do painel (`/painel/ajuda`). Cada pessoa vê só os
   - proprietário e administrador caem em Configurações ao entrar ou ao trocar de assistência (`src/features/tenancy/landing.js`);
   - eles também veem um aviso em todas as telas;
   - técnicos e atendentes veem o aviso só no Dashboard.
+
+## Área admin (dono do TecnoFix)
+
+Em `https://tecnofix.pro/admin`, fora do painel das assistências e sem link no app.
+
+**O que mostra:**
+- assistências, donos e equipe;
+- situação da assinatura e vencimento (fim do teste ou pago até);
+- receita mensal recorrente e o que foi recebido no mês;
+- uso (OS nos últimos 30 dias e no total);
+- pessoas cadastradas que ainda não criaram assistência.
+
+**O que dá para fazer:**
+- estender o teste grátis;
+- suspender e reativar uma assistência;
+- conferir a assinatura no Mercado Pago;
+- baixar a lista em CSV (abre no Excel).
+
+**Login separado das contas das assistências.** Usuário e senha ficam em variáveis da Vercel, com a senha criptografada (scrypt).
+
+Para configurar:
+1. Rode a migration `20261014120000_admin.sql` no SQL Editor do Supabase.
+2. No seu computador, na pasta do projeto, rode `npm run admin:senha`. Escolha o usuário e a senha (mínimo de 12 caracteres); a senha não aparece na tela.
+3. Copie as 3 linhas impressas (`ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`) para Vercel → Settings → Environment Variables (Production) e faça um novo deploy.
+4. Entre em `/admin/entrar`.
+
+**Para trocar a senha:** rode o comando de novo e substitua as 3 variáveis. As sessões abertas caem.
+
+**Segurança:**
+- Sem as 3 variáveis, a área fica desligada.
+- O login aceita até 5 erros por IP (ou 20 no total) a cada 15 minutos. As tentativas ficam em `admin_login_attempts`.
+- A sessão é um cookie assinado, `HttpOnly`, `SameSite=Strict` e restrito a `/admin`, válido por 12 horas.
+- Toda ação fica em `admin_audit_log`.
+- As consultas usam a chave secreta só no servidor. As funções `admin_*` e as tabelas não podem ser lidas pela equipe das assistências (teste pgTAP `07_admin`).
 
 ## Próximos passos (fora do escopo atual, com os ganchos prontos)
 

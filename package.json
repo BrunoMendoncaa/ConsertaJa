@@ -13,6 +13,7 @@
     "db:test": "npx supabase test db",
     "db:push": "npx supabase db push",
     "db:sql-instalacao": "node scripts/gerar-sql-instalacao.mjs",
+    "admin:senha": "node scripts/admin-senha.mjs",
     "test:e2e": "node tests/e2e/fluxo-equipe-e-portal.js && node tests/e2e/cadastro-convite-recusa.js"
   },
   "engines": {

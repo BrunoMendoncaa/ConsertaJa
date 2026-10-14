@@ -1,0 +1,123 @@
+// Regras de exibição da área admin (puras, testadas em tests/admin.test.js).
+import { PLANS } from '@/lib/billing';
+
+const DAY = 86400000;
+
+/**
+ * Situação comercial da assistência, a partir de billing_access (mesma regra do app)
+ * e do status da assinatura.
+ */
+export const SITUATIONS = {
+  trial: { label: 'Teste grátis', tone: 'blue' },
+  trial_subscribed: { label: 'Teste · já assinou', tone: 'teal' },
+  active: { label: 'Ativa', tone: 'emerald' },
+  grace: { label: 'Pagamento pendente', tone: 'amber' },
+  expired: { label: 'Teste encerrado', tone: 'orange' },
+  canceled: { label: 'Cancelada', tone: 'zinc' },
+  suspended: { label: 'Suspensa', tone: 'red' },
+};
+
+export const SITUATION_FILTERS = [
+  ['todas', 'Todas'],
+  ['trial', 'Em teste'],
+  ['active', 'Ativas'],
+  ['grace', 'Pagamento pendente'],
+  ['expired', 'Teste encerrado'],
+  ['canceled', 'Canceladas'],
+  ['suspended', 'Suspensas'],
+];
+
+export function situationKey(a) {
+  if (a.subscription_status === 'suspended') return 'suspended';
+  if (a.access === 'active') return 'active';
+  if (a.access === 'grace') return 'grace';
+  if (a.access === 'trial') {
+    return a.mp_preapproval_id && a.subscription_status !== 'canceled' && a.subscription_mp_status === 'authorized'
+      ? 'trial_subscribed' : 'trial';
+  }
+  return a.subscription_status === 'canceled' ? 'canceled' : 'expired';
+}
+
+export function situation(a) {
+  const key = situationKey(a);
+  return { key, ...SITUATIONS[key] };
+}
+
+/** Filtro "Em teste" inclui quem já assinou durante o teste. */
+export function matchesSituation(a, filter) {
+  if (!filter || filter === 'todas') return true;
+  const key = situationKey(a);
+  return filter === 'trial' ? key === 'trial' || key === 'trial_subscribed' : key === filter;
+}
+
+/** Dias inteiros até a data (negativo = já passou). */
+export function daysUntil(date, now = Date.now()) {
+  if (!date) return null;
+  const t = new Date(date).getTime();
+  if (Number.isNaN(t)) return null;
+  return Math.ceil((t - now) / DAY);
+}
+
+/** Qual data importa agora: fim do teste, pago até ou quando venceu. */
+export function dueInfo(a, now = Date.now()) {
+  const key = situationKey(a);
+  if (key === 'suspended') return { date: null, label: 'Suspensa', days: null };
+  if (key === 'trial' || key === 'trial_subscribed') {
+    return { date: a.trial_ends_at, label: key === 'trial' ? 'Teste até' : '1ª cobrança', days: daysUntil(a.trial_ends_at, now) };
+  }
+  if (key === 'active' || key === 'grace') return { date: a.paid_until, label: 'Pago até', days: daysUntil(a.paid_until, now) };
+  const ended = [a.trial_ends_at, a.paid_until].filter(Boolean).map((d) => new Date(d).getTime());
+  const last = ended.length ? new Date(Math.max(...ended)).toISOString() : null;
+  return { date: last, label: 'Venceu em', days: daysUntil(last, now) };
+}
+
+export function relativeDays(days) {
+  if (days === null || days === undefined) return '';
+  if (days === 0) return 'hoje';
+  if (days === 1) return 'amanhã';
+  if (days === -1) return 'ontem';
+  return days > 0 ? `em ${days} dias` : `há ${-days} dias`;
+}
+
+/** Valor mensal da assinatura (anual ÷ 12). Só conta quem está pagando (ativa ou pendente). */
+export function monthlyValue(a) {
+  const key = situationKey(a);
+  if (key !== 'active' && key !== 'grace') return 0;
+  const plan = PLANS[a.billing_cycle] || PLANS.monthly;
+  const amount = Number(a.subscription_amount) || plan.amount;
+  return Math.round((amount / plan.months) * 100) / 100;
+}
+
+export function cycleLabel(cycle) {
+  return PLANS[cycle]?.label || '—';
+}
+
+/** Cadastro mínimo da loja (mesma regra do app). */
+export function profileComplete(a) {
+  const addr = a.address || {};
+  const filled = (v) => String(v ?? '').trim().length > 0;
+  return (filled(a.whatsapp) || filled(a.phone)) && ['cep', 'rua', 'numero', 'bairro', 'cidade', 'uf'].every((k) => filled(addr[k]));
+}
+
+/** Busca simples por nome, endereço do portal, dono, e-mail ou telefone (sem acento). */
+export function matchesQuery(a, q) {
+  const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const query = norm(q).trim();
+  if (!query) return true;
+  const digits = query.replace(/\D/g, '');
+  const hay = norm([a.name, a.slug, a.owner_name, a.owner_email, a.email, a.address?.cidade].join(' '));
+  if (hay.includes(query)) return true;
+  if (digits.length >= 4) {
+    return [a.phone, a.whatsapp, a.owner_phone, a.document].some((v) => String(v || '').replace(/\D/g, '').includes(digits));
+  }
+  return false;
+}
+
+/** CSV para Excel em português: separador ";", aspas quando preciso e BOM UTF-8. */
+export function toCsv(header, rows) {
+  const cell = (v) => {
+    const s = v === null || v === undefined ? '' : String(v);
+    return /[";\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  return '﻿' + [header, ...rows].map((r) => r.map(cell).join(';')).join('\r\n') + '\r\n';
+}

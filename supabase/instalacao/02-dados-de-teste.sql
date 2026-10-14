@@ -252,7 +252,7 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', diego, 'role', 'authenticated')::text, true);
   a_rio := public.create_assistance('Conserta Rápido Rio', 'conserta-rapido-rio');
   update public.assistances set phone = '(21) 3555-1000', whatsapp = '(21) 99999-1000', brand_color = '#047857',
-    address = '{"rua":"Rua da Assembleia","numero":"10","bairro":"Centro","cidade":"Rio de Janeiro","uf":"RJ"}'
+    address = '{"cep":"20010-020","rua":"Rua da Assembleia","numero":"10","bairro":"Centro","cidade":"Rio de Janeiro","uf":"RJ"}'
   where id = a_rio;
 
   -- Mesmo telefone do João, em outra assistência: são clientes diferentes.
