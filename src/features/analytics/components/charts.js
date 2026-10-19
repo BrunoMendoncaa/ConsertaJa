@@ -80,8 +80,8 @@ export function BarList({ items, empty = 'Sem dados no período.', extraLabel })
               {extraLabel && it.extra !== undefined && <span className="ml-1.5 text-xs font-normal text-slate-500">· {fmtNum(it.extra)} {extraLabel}</span>}
             </span>
           </div>
-          <div className="mt-1 h-1.5 rounded-full bg-slate-100">
-            <div className="h-1.5 rounded-full bg-brand-600" style={{ width: `${Math.max(2, (it.value / max) * 100)}%` }} />
+          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
+            <div className="h-1.5 rounded-full bg-brand-600" style={{ width: `${Math.min(100, Math.max(2, (it.value / max) * 100))}%` }} />
           </div>
         </li>
       ))}
@@ -91,7 +91,8 @@ export function BarList({ items, empty = 'Sem dados no período.', extraLabel })
 
 /** Funil: cada etapa com o total, % do início e % da etapa anterior. */
 export function Funnel({ steps }) {
-  const first = Math.max(1, steps[0]?.value || 0);
+  // Escala pela maior etapa (as contas vêm do sistema e podem passar das visitas registradas).
+  const max = Math.max(1, ...steps.map((s) => s.value));
   return (
     <ol className="space-y-3">
       {steps.map((s, i) => (
@@ -100,11 +101,11 @@ export function Funnel({ steps }) {
             <span className="text-slate-700"><span className="tabular mr-1.5 text-slate-400">{i + 1}.</span>{s.label}</span>
             <span className="tabular shrink-0 font-semibold text-slate-900">
               {fmtNum(s.value)}
-              {i > 0 && <span className="ml-1.5 text-xs font-normal text-slate-500">{s.ofPrev.toLocaleString('pt-BR')}% da etapa anterior</span>}
+              {s.ofPrev !== null && i > 0 && <span className="ml-1.5 text-xs font-normal text-slate-500">{s.ofPrev.toLocaleString('pt-BR')}% da etapa anterior</span>}
             </span>
           </div>
-          <div className="mt-1 h-2.5 rounded-full bg-slate-100">
-            <div className="h-2.5 rounded-full bg-brand-600" style={{ width: `${s.value ? Math.max(1.5, (s.value / first) * 100) : 0}%` }} />
+          <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-slate-100">
+            <div className="h-2.5 rounded-full bg-brand-600" style={{ width: `${s.value ? Math.min(100, Math.max(1.5, (s.value / max) * 100)) : 0}%` }} />
           </div>
         </li>
       ))}

@@ -108,11 +108,19 @@ describe('acessos do site: resumo da tela Site', () => {
     expect(r.totals).toMatchObject({ visits: 2, people: 2, pageViews: 3, ctaClicks: 1, ctaVisits: 1, signupVisits: 1, newUsers: 1, conversion: 50 });
     expect(r.funnel.map((f) => f.value)).toEqual([2, 1, 1, 1, 1]);
     expect(r.funnel[1].ofFirst).toBe(50);
+    expect(r.funnel[1].ofPrev).toBe(50);
+    expect(r.funnel[4].ofPrev).toBe(100);
     expect(r.origins[0]).toMatchObject({ label: 'Google', value: 1, signup: 0 });
     expect(r.origins.find((o) => o.label.startsWith('WhatsApp'))).toMatchObject({ value: 1, signup: 1 });
     expect(r.cities.map((c) => c.label).sort()).toEqual(['Bauru · SP', 'Recife · PE']);
     expect(r.devices.map((d) => d.label).sort()).toEqual(['Celular', 'Computador']);
     expect(r.recent[0]).toMatchObject({ place: 'Bauru/SP', clicked: true, pages: ['Página inicial (link da campanha)', 'Cadastro'] });
+  });
+
+  it('funil sem visitas registradas não mostra % sem sentido (caso real: contas antes da contagem)', () => {
+    const r = summarize({ events: [], range, users: [{ created_at: at(1) }, { created_at: at(2) }], assistances: [{ created_at: at(1) }, { created_at: at(2) }] });
+    expect(r.funnel.map((f) => f.value)).toEqual([0, 0, 2, 2, 0]);
+    expect(r.funnel.map((f) => f.ofPrev)).toEqual([null, null, null, 100, 0]);
   });
 
   it('gráfico por dia tem todos os dias do período, inclusive os vazios', () => {

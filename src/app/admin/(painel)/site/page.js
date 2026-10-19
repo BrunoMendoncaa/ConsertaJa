@@ -113,7 +113,15 @@ export default async function AdminSitePage({ searchParams }) {
       <div className="mb-6 grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader title="Do clique à assinatura" description="Visitas e cadastros no período. Contas e assinaturas vêm do sistema." />
-          <CardContent><Funnel steps={r.funnel} /></CardContent>
+          <CardContent>
+            <Funnel steps={r.funnel} />
+            {r.funnel[2].value > r.funnel[1].value && (
+              <p className="mt-4 text-xs text-slate-500">
+                Há contas criadas sem visita registrada ao cadastro: antes de a contagem começar, em navegador marcado
+                para não contar ou por convite de equipe.
+              </p>
+            )}
+          </CardContent>
         </Card>
         <Card>
           <CardHeader title="De onde vieram" description="Origem da visita e quantas chegaram ao cadastro." />

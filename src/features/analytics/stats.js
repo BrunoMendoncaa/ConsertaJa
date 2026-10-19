@@ -112,7 +112,12 @@ export function summarize({ events = [], users = [], assistances = [], payments 
     { label: 'Criaram conta', value: newUsers },
     { label: 'Criaram a assistência', value: newAssistances },
     { label: 'Assinaram', value: paying },
-  ].map((step, i, all) => ({ ...step, ofFirst: pct(step.value, all[0].value), ofPrev: i ? pct(step.value, all[i - 1].value) : 100 }));
+  ].map((step, i, all) => {
+    const prev = i ? all[i - 1].value : null;
+    // % da etapa anterior só quando faz sentido: etapa anterior com gente e sem passar de 100%
+    // (contas criadas antes de a contagem começar podem superar as visitas registradas).
+    return { ...step, ofFirst: pct(step.value, all[0].value), ofPrev: i && prev > 0 && step.value <= prev ? pct(step.value, prev) : null };
+  });
 
   return {
     totals: {
