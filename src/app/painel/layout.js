@@ -5,7 +5,7 @@ import { getMyAssistances } from '@/features/tenancy/queries';
 import { switchAssistance } from '@/features/tenancy/actions';
 import { getBillingStatus } from '@/features/billing/queries';
 import { BillingNotice } from '@/features/billing/components/billing-notice';
-import { ACCESS_LABELS } from '@/lib/billing';
+import { ACCESS_LABELS, trialDaysLeft } from '@/lib/billing';
 import { ProfileNotice } from '@/features/tenancy/components/profile-notice';
 import { missingProfileFields } from '@/features/tenancy/profile';
 
@@ -15,9 +15,10 @@ export default async function PainelLayout({ children }) {
   const ctx = await requireStaff();
   const [mine, billing] = await Promise.all([getMyAssistances(), getBillingStatus()]);
   const isManager = MANAGER_ROLES.includes(ctx.role);
+  const trialLeft = trialDaysLeft(billing);
   const planLabel = billing
     ? billing.access === 'trial'
-      ? `Teste grátis · ${billing.trial_days_left} ${billing.trial_days_left === 1 ? 'dia' : 'dias'}`
+      ? `Teste grátis · ${trialLeft === 0 ? 'último dia' : `${trialLeft} ${trialLeft === 1 ? 'dia' : 'dias'}`}`
       : ACCESS_LABELS[billing.access]
     : null;
 

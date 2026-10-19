@@ -1,4 +1,5 @@
 // Regras do certificado de garantia (sem acesso a banco: fácil de testar).
+import { dayBR } from '@/lib/dates';
 
 /** Condições usadas quando a assistência não escreveu a própria política de garantia. */
 export const DEFAULT_WARRANTY_TERMS = [
@@ -11,10 +12,10 @@ export const DEFAULT_WARRANTY_TERMS = [
 export const LEGAL_WARRANTY_NOTE =
   'Esta garantia contratual é complementar à garantia legal prevista no Código de Defesa do Consumidor (arts. 26 e 50).';
 
-/** Dias inteiros entre duas datas "YYYY-MM-DD" (ou timestamps). */
+/** Dias inteiros entre duas datas "YYYY-MM-DD" (ou data/hora), pelo calendário de Brasília. */
 function daysBetween(from, to) {
   const day = (v) => {
-    const s = typeof v === 'string' ? v.slice(0, 10) : new Date(v).toISOString().slice(0, 10);
+    const s = dayBR(v);
     return Date.UTC(Number(s.slice(0, 4)), Number(s.slice(5, 7)) - 1, Number(s.slice(8, 10)));
   };
   return Math.round((day(to) - day(from)) / 86400000);

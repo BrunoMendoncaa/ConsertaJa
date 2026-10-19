@@ -2,6 +2,8 @@
 // Os mesmos números estão nas regras do banco (migration 0011): 14 dias de teste
 // e 7 dias de tolerância para pagamento atrasado.
 
+import { daysFromToday } from '@/lib/dates';
+
 export const TRIAL_DAYS = 14;
 export const GRACE_DAYS = 7;
 
@@ -39,3 +41,13 @@ export const ACCESS_LABELS = {
   grace: 'Pagamento pendente',
   blocked: 'Assinatura necessária',
 };
+
+/**
+ * Dias de teste que faltam, contados no calendário de Brasília: 0 = termina hoje, 1 = amanhã.
+ * (O banco devolve trial_days_left em blocos de 24 horas; aqui vale a data do fim do teste.)
+ */
+export function trialDaysLeft(billing, now = new Date()) {
+  if (!billing) return null;
+  const days = billing.trial_ends_at ? daysFromToday(billing.trial_ends_at, now) : null;
+  return days === null ? billing.trial_days_left ?? null : Math.max(0, days);
+}

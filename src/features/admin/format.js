@@ -1,7 +1,7 @@
 // Regras de exibição da área admin (puras, testadas em tests/admin.test.js).
 import { PLANS } from '@/lib/billing';
+import { daysFromToday } from '@/lib/dates';
 
-const DAY = 86400000;
 
 /**
  * Situação comercial da assistência, a partir de billing_access (mesma regra do app)
@@ -51,11 +51,11 @@ export function matchesSituation(a, filter) {
 }
 
 /** Dias inteiros até a data (negativo = já passou). */
+/** Dias de calendário em Brasília até a data (0 = hoje, 1 = amanhã, -1 = ontem). */
 export function daysUntil(date, now = Date.now()) {
   if (!date) return null;
-  const t = new Date(date).getTime();
-  if (Number.isNaN(t)) return null;
-  return Math.ceil((t - now) / DAY);
+  if (Number.isNaN(new Date(date).getTime())) return null;
+  return daysFromToday(date, new Date(now));
 }
 
 /** Qual data importa agora: fim do teste, pago até ou quando venceu. */

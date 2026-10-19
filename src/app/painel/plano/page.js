@@ -10,8 +10,8 @@ import { ActionForm, SubmitButton } from '@/components/ui/action-form';
 import { getBillingStatus } from '@/features/billing/queries';
 import { startCheckout, refreshBilling, cancelSubscription } from '@/features/billing/actions';
 import { isMercadoPagoConfigured } from '@/lib/mercadopago';
-import { PLANS, PLAN_FEATURES, GRACE_DAYS } from '@/lib/billing';
-import { formatDate } from '@/lib/dates';
+import { PLANS, PLAN_FEATURES, GRACE_DAYS, trialDaysLeft } from '@/lib/billing';
+import { formatDate, addDaysISO } from '@/lib/dates';
 import { formatBRL } from '@/lib/money';
 
 export const metadata = { title: 'Meu plano' };
@@ -25,11 +25,6 @@ const PAYMENT_STATUS = {
   refunded: ['Estornado', 'text-slate-500'],
 };
 
-function plusDays(iso, days) {
-  const d = new Date(iso);
-  d.setDate(d.getDate() + days);
-  return d.toISOString();
-}
 
 const RETURN_NOTICES = {
   confirmado: ['success', 'Pagamento confirmado! Sua assinatura está ativa.'],
@@ -39,15 +34,16 @@ const RETURN_NOTICES = {
 };
 
 function StatusCard({ billing }) {
-  const { access, status, cycle, paid_until: paidUntil, trial_ends_at: trialEnds, trial_days_left: daysLeft, has_subscription: subscribed } = billing;
-  const graceUntil = plusDays(paidUntil || trialEnds, GRACE_DAYS);
+  const { access, status, cycle, paid_until: paidUntil, trial_ends_at: trialEnds, has_subscription: subscribed } = billing;
+  const daysLeft = trialDaysLeft(billing);
+  const graceUntil = addDaysISO(paidUntil || trialEnds, GRACE_DAYS);
   const cycleLabel = cycle ? PLANS[cycle]?.label.toLowerCase() : null;
   const variants = {
     trial: subscribed
       ? { Icon: ShieldCheck, tone: 'border-emerald-200 bg-emerald-50 text-emerald-900', title: 'Assinatura confirmada',
           text: `Você continua no teste grátis até ${formatDate(trialEnds)}. A primeira cobrança (plano ${cycleLabel || ''}) é feita nesse dia pelo Mercado Pago.` }
       : { Icon: Clock, tone: 'border-brand-200 bg-brand-50 text-brand-900',
-          title: daysLeft <= 1 ? 'Teste grátis: último dia' : `Teste grátis: faltam ${daysLeft} dias`,
+          title: daysLeft === 0 ? 'Teste grátis: último dia' : daysLeft === 1 ? 'Teste grátis: termina amanhã' : `Teste grátis: faltam ${daysLeft} dias`,
           text: `Tudo liberado até ${formatDate(trialEnds)}. Se assinar agora, a primeira cobrança só acontece no fim do teste.` },
     active: status === 'canceled'
       ? { Icon: ShieldCheck, tone: 'border-slate-200 bg-slate-50 text-slate-900', title: 'Renovação cancelada',

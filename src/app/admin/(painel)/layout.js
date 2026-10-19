@@ -3,6 +3,7 @@ import { Wrench, LogOut } from 'lucide-react';
 import { requireAdmin } from '@/features/admin/session';
 import { adminSignOut } from '@/features/admin/actions';
 import { AdminNav } from '@/features/admin/components/admin-nav';
+import { RefreshButton } from '@/features/admin/components/refresh-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,12 +21,15 @@ export default async function AdminLayout({ children }) {
             <span className="rounded bg-accent-500 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-900">Admin</span>
           </Link>
           <AdminNav />
-          <form action={adminSignOut} className="ml-auto flex items-center gap-3">
-            <span className="hidden text-sm text-slate-400 sm:inline">{session.username}</span>
-            <button type="submit" className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white">
-              <LogOut className="size-4" aria-hidden="true" /> Sair
-            </button>
-          </form>
+          <div className="ml-auto flex items-center gap-1 sm:gap-3">
+            <RefreshButton renderedAt={new Date().toISOString()} />
+            <form action={adminSignOut} className="flex items-center gap-3">
+              <span className="hidden text-sm text-slate-400 sm:inline">{session.username}</span>
+              <button type="submit" className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white">
+                <LogOut className="size-4" aria-hidden="true" /> Sair
+              </button>
+            </form>
+          </div>
         </div>
       </header>
       <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>

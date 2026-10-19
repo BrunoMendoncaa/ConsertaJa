@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { parseMoney, parseQuantity, formatBRL, moneyInputValue } from '@/lib/money';
 import { normalizeBrPhone, formatPhone, whatsappLink } from '@/lib/phone';
 import { isValidCPF, isValidCNPJ, parseDocument, formatDocument } from '@/lib/document';
-import { resolvePeriod, formatDate } from '@/lib/dates';
+import { resolvePeriod, formatDate, formatDateTime, formatTime, dayBR, daysFromToday, addDaysISO } from '@/lib/dates';
+import { trialDaysLeft } from '@/lib/billing';
 import { friendlyMessage, DB_NOT_READY_MESSAGE } from '@/lib/errors';
 import { allowedCategories } from '@/features/finance/rules';
 import { warrantyDocument, warrantyTerms, DEFAULT_WARRANTY_TERMS } from '@/features/service-orders/warranty';
@@ -61,6 +62,37 @@ describe('CPF/CNPJ', () => {
     expect(parseDocument('52998224725')).toBe('52998224725');
     expect(parseDocument('123')).toBe(false);
     expect(formatDocument('52998224725')).toBe('529.982.247-25');
+  });
+});
+
+describe('horário de Brasília (o servidor da Vercel roda em UTC)', () => {
+  // 02:30 UTC de 20/10 = 23:30 de 19/10 em Brasília
+  const lateNight = '2026-10-20T02:30:00Z';
+
+  it('data e hora saem em Brasília, qualquer que seja o fuso do servidor', () => {
+    expect(formatDate(lateNight)).toBe('19/10/2026');
+    expect(formatDateTime(lateNight)).toBe('19/10/2026, 23:30');
+    expect(formatTime(lateNight)).toBe('23:30');
+    expect(dayBR(lateNight)).toBe('2026-10-19');
+    expect(dayBR('2026-10-20')).toBe('2026-10-20'); // data sem hora não muda de dia
+  });
+
+  it('dias contados pelo calendário de Brasília (hoje, amanhã), não por blocos de 24h', () => {
+    const now = new Date('2026-10-20T01:00:00Z'); // 22h de 19/10 em Brasília
+    expect(daysFromToday('2026-10-20T13:00:00Z', now)).toBe(1); // amanhã às 10h
+    expect(daysFromToday('2026-10-20T02:00:00Z', now)).toBe(0); // hoje às 23h
+    expect(daysFromToday('2026-10-19T12:00:00Z', now)).toBe(0);
+    expect(daysFromToday('2026-10-18T12:00:00Z', now)).toBe(-1);
+    expect(addDaysISO('2026-10-20T13:00:00Z', 7)).toBe('2026-10-27T13:00:00.000Z');
+  });
+
+  it('teste grátis: faltam dias pela data de fim, em Brasília', () => {
+    const now = new Date('2026-10-20T01:00:00Z'); // 22h de 19/10
+    expect(trialDaysLeft({ trial_ends_at: '2026-10-20T13:00:00Z', trial_days_left: 1 }, now)).toBe(1); // termina amanhã
+    expect(trialDaysLeft({ trial_ends_at: '2026-10-20T02:00:00Z', trial_days_left: 1 }, now)).toBe(0); // termina hoje
+    expect(trialDaysLeft({ trial_ends_at: '2026-11-02T13:00:00Z' }, now)).toBe(14);
+    expect(trialDaysLeft({ trial_ends_at: '2026-10-10T13:00:00Z' }, now)).toBe(0);
+    expect(trialDaysLeft({ trial_days_left: 3 }, now)).toBe(3);
   });
 });
 

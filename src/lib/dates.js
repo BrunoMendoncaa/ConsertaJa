@@ -30,6 +30,41 @@ export function todayISO() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
 }
 
+// Tudo em horário de Brasília, mesmo com o servidor em UTC (a Vercel roda em UTC e não deixa trocar o TZ).
+const ymdFmt = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' });
+const timeFmt = new Intl.DateTimeFormat('pt-BR', { timeZone: TZ, hour: '2-digit', minute: '2-digit' });
+
+/** Dia de calendário em Brasília de uma data/hora, como "YYYY-MM-DD". */
+export function dayBR(value) {
+  const d = toDate(value);
+  return d ? ymdFmt.format(d) : null;
+}
+
+/** "08:26" em Brasília. */
+export function formatTime(value) {
+  const d = toDate(value);
+  return d ? timeFmt.format(d) : '—';
+}
+
+/**
+ * Dias de calendário (Brasília) de hoje até a data: 0 = hoje, 1 = amanhã, -1 = ontem.
+ * Conta pela data e não por blocos de 24 horas: algo que vence amanhã às 10h é "amanhã",
+ * mesmo visto hoje às 22h.
+ */
+export function daysFromToday(value, now = new Date()) {
+  const a = dayBR(value);
+  const b = dayBR(now);
+  if (!a || !b) return null;
+  const utc = (s) => Date.UTC(Number(s.slice(0, 4)), Number(s.slice(5, 7)) - 1, Number(s.slice(8, 10)));
+  return Math.round((utc(a) - utc(b)) / 86400000);
+}
+
+/** Soma dias corridos a uma data/hora (24h cada; Brasília não tem horário de verão desde 2019). */
+export function addDaysISO(value, days) {
+  const d = toDate(value);
+  return d ? new Date(d.getTime() + days * 86400000).toISOString() : null;
+}
+
 function addDays(iso, days) {
   const d = new Date(`${iso}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
