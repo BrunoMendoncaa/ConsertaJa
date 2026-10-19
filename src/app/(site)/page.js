@@ -6,6 +6,7 @@ import {
 import { Logo } from '@/components/layout/logo';
 import { ButtonLink } from '@/components/ui/button';
 import { PLANS, PLAN_FEATURES, TRIAL_DAYS } from '@/lib/billing';
+import { SiteTracker } from '@/features/analytics/components/site-tracker';
 
 const features = [
   { icon: ClipboardList, title: 'Ordem de serviço em 1 minuto', text: 'Cliente, equipamento, defeito, acessórios e condição de entrada num fluxo rápido de balcão. Número OS-2026-000123 gerado na hora.' },
@@ -28,11 +29,12 @@ const warrantyPoints = [
 export default function LandingPage() {
   return (
     <div className="bg-white">
+      <SiteTracker />
       <header className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-5 sm:px-6">
         <Logo />
         <nav className="flex items-center gap-1 sm:gap-2">
-          <ButtonLink href="/entrar" variant="ghost" size="sm" className="sm:h-10 sm:px-4">Entrar</ButtonLink>
-          <ButtonLink href="/cadastro" size="sm" className="sm:h-10 sm:px-4">Criar conta<span className="hidden sm:inline">&nbsp;grátis</span></ButtonLink>
+          <ButtonLink href="/entrar" variant="ghost" size="sm" className="sm:h-10 sm:px-4" data-track="topo-entrar">Entrar</ButtonLink>
+          <ButtonLink href="/cadastro" size="sm" className="sm:h-10 sm:px-4" data-track="topo-criar-conta">Criar conta<span className="hidden sm:inline">&nbsp;grátis</span></ButtonLink>
         </nav>
       </header>
 
@@ -48,10 +50,10 @@ export default function LandingPage() {
             Abra ordens de serviço, registre fotos, envie orçamentos que o cliente aprova pelo celular, entregue com certificado de garantia e acompanhe o caixa da sua assistência num só lugar.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <ButtonLink href="/cadastro" size="lg">
+            <ButtonLink href="/cadastro" size="lg" data-track="hero-teste-gratis">
               Testar grátis por {TRIAL_DAYS} dias <ArrowRight className="size-4" aria-hidden="true" />
             </ButtonLink>
-            <ButtonLink href="/entrar" variant="outline" size="lg">Já tenho conta</ButtonLink>
+            <ButtonLink href="/entrar" variant="outline" size="lg" data-track="hero-ja-tenho-conta">Já tenho conta</ButtonLink>
           </div>
         </div>
 
@@ -204,7 +206,7 @@ export default function LandingPage() {
               <li key={t} className="flex items-center gap-2"><CircleCheck className="size-4 text-emerald-400" aria-hidden="true" />{t}</li>
             ))}
           </ul>
-          <Link href="/cadastro" className="mt-6 inline-flex h-11 items-center gap-2 rounded-lg bg-white px-5 text-sm font-semibold text-slate-900 hover:bg-slate-100">
+          <Link href="/cadastro" data-track="rodape-teste-gratis" className="mt-6 inline-flex h-11 items-center gap-2 rounded-lg bg-white px-5 text-sm font-semibold text-slate-900 hover:bg-slate-100">
             Começar o teste grátis <ArrowRight className="size-4" aria-hidden="true" />
           </Link>
         </div>

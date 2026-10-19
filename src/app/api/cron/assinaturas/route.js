@@ -27,6 +27,11 @@ export async function GET(request) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return Response.json({ error: 'CRON_SECRET não configurado' }, { status: 503 });
   if (!isAuthorized(request, secret)) return Response.json({ error: 'não autorizado' }, { status: 401 });
+
+  // Acessos do site com mais de 13 meses saem do banco (migration 0016). Falha aqui não para a rotina.
+  const cleanup = await createAdminClient().rpc('cleanup_site_events');
+  if (cleanup.error && !['PGRST202', '42883'].includes(cleanup.error.code)) logError('site.cleanup', cleanup.error);
+
   if (!isMercadoPagoConfigured()) return Response.json({ ok: true, skipped: 'Mercado Pago não configurado' });
 
   const admin = createAdminClient();

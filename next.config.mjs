@@ -27,6 +27,11 @@ const nextConfig = {
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },
+  // Links curtos de campanha: mostram a página inicial e marcam a origem da visita
+  // (ver src/features/analytics/constants.js). Ex.: https://tecnofix.pro/14dias
+  async rewrites() {
+    return [{ source: '/14dias', destination: '/' }];
+  },
   async redirects() {
     const host = publicHost();
     if (!host || OLD_HOSTS.includes(host) || host.startsWith('localhost') || host.startsWith('127.')) return [];

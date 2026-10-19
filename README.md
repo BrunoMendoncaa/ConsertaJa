@@ -25,10 +25,10 @@ Sistema SaaS para assistências técnicas de eletrônicos e eletrodomésticos: o
 
 ```text
 supabase/
-  migrations/        15 migrations em ordem (base, tenancy, clientes, OS, storage, orçamentos, portal, caixa, permissões, garantia no portal, assinatura, travas da assinatura, nome TecnoFix, uma assinatura por assistência, área admin)
+  migrations/        16 migrations em ordem (base, tenancy, clientes, OS, storage, orçamentos, portal, caixa, permissões, garantia no portal, assinatura, travas da assinatura, nome TecnoFix, uma assinatura por assistência, área admin, acessos do site)
   instalacao/        as migrations juntas para colar no SQL Editor (gerado por npm run db:sql-instalacao)
   seed.sql           2 assistências fictícias, usuários, OS em vários status, orçamentos e caixa
-  tests/database/    223 testes pgTAP (isolamento entre tenants, OS, orçamento, portal, garantia, caixa, assinatura, área admin)
+  tests/database/    240 testes pgTAP (isolamento entre tenants, OS, orçamento, portal, garantia, caixa, assinatura, área admin, acessos do site)
 src/
   app/               rotas: site, login, onboarding, convite, /painel (equipe), /a/[slug] (portal do cliente) e /admin (dono do TecnoFix)
   features/          regra de negócio por domínio: actions.js (Server Actions), queries.js, components/
@@ -273,6 +273,29 @@ Para configurar:
 - A sessão é um cookie assinado, `HttpOnly`, `SameSite=Strict` e restrito a `/admin`, válido por 12 horas.
 - Toda ação fica em `admin_audit_log`.
 - As consultas usam a chave secreta só no servidor. As funções `admin_*` e as tabelas não podem ser lidas pela equipe das assistências (teste pgTAP `07_admin`).
+
+## Acessos do site (tela "Site" na área admin)
+
+Em `/admin/site`: visitas da página inicial, do cadastro e do entrar.
+
+**O que mostra** (hoje, 7, 30 ou 90 dias):
+- visitas, visitantes, cliques nos botões de teste grátis, quem abriu o cadastro, novas contas e conversão;
+- visitas por dia (e por hora, no "Hoje"), com tabela;
+- funil: visitas → abriram o cadastro → criaram conta → criaram a assistência → assinaram;
+- de onde vieram (campanha, Google, Instagram, sem origem) e quantas chegaram ao cadastro;
+- cidades, aparelho, botões clicados, páginas, horário das visitas e as 15 últimas visitas.
+
+A visão geral da área admin tem um resumo dos últimos 7 dias.
+
+**Links de campanha.** `https://tecnofix.pro/14dias` mostra a página inicial e marca a visita como "WhatsApp · convite-14-dias" (lista em `src/features/analytics/constants.js`). Links com `?utm_source=...&utm_campaign=...` também são reconhecidos. A campanha vale para a visita inteira (inclusive o cadastro).
+
+**Como funciona.**
+- O componente `SiteTracker` (landing e páginas de login/cadastro) manda cada visita e cada clique em botão com `data-track` para `POST /api/site/evento`.
+- A rota descarta robôs (inclusive a prévia de link do WhatsApp), pedidos de outro site e páginas fora da lista, e grava pela função `track_site_event` (limite de 60 eventos por visitante por minuto).
+- Privacidade: sem cookies e sem IP. O visitante vira um código que muda todo dia (hash com sal secreto: `ANALYTICS_SALT` ou, se não houver, a chave secreta do Supabase). A cidade vem do cabeçalho da Vercel. Os dados com mais de 13 meses são apagados pela rotina diária.
+- "Não contar minhas visitas" (no fim da tela Site) marca o navegador para o contador ignorar.
+
+**Para ativar:** rode a migration `20261019120000_acessos_site.sql` no SQL Editor do Supabase e faça o deploy. A contagem começa a partir daí.
 
 ## Próximos passos (fora do escopo atual, com os ganchos prontos)
 

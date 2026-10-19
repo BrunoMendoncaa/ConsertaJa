@@ -36,6 +36,28 @@ export async function approvedPaymentsSince(isoDate) {
   return data || [];
 }
 
+export class SiteSetupError extends Error {}
+
+/** Acessos do site (migration 0016) desde uma data, em páginas de 1000 linhas. */
+export async function siteEventsSince(isoDate, cap = 100000) {
+  const db = createAdminClient();
+  const cols = 'created_at, event, path, label, visitor, session, referrer_host, utm_source, utm_medium, utm_campaign, device, browser, os, country, region, city';
+  const out = [];
+  for (let from = 0; from < cap; from += 1000) {
+    const { data, error } = await db.from('site_events').select(cols).gte('created_at', isoDate)
+      .order('created_at', { ascending: true }).order('id', { ascending: true }).range(from, from + 999);
+    if (error) {
+      if (['PGRST202', 'PGRST205', '42883', '42P01'].includes(error.code)) {
+        throw new SiteSetupError('O banco ainda não tem a contagem de acessos do site (migration 0016).');
+      }
+      throw new Error(`site_events: ${error.message}`);
+    }
+    out.push(...(data || []));
+    if (!data || data.length < 1000) break;
+  }
+  return out;
+}
+
 export async function recentAdminActions(limit = 8) {
   const { data, error } = await createAdminClient()
     .from('admin_audit_log').select('id, admin_username, action, assistance_id, details, created_at')

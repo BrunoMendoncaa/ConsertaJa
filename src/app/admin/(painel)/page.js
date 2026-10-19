@@ -4,7 +4,11 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { Table, THead, TH, TBody, TD } from '@/components/ui/table';
-import { listAssistances, listUsers, approvedPaymentsSince, recentAdminActions, AdminSetupError } from '@/features/admin/queries';
+import {
+  listAssistances, listUsers, approvedPaymentsSince, recentAdminActions, siteEventsSince, AdminSetupError, SiteSetupError,
+} from '@/features/admin/queries';
+import { summarize, periodRange } from '@/features/analytics/stats';
+import { fmtNum } from '@/features/analytics/components/charts';
 import { situationKey, dueInfo, monthlyValue } from '@/features/admin/format';
 import { SituationBadge, DueCell, OwnerContact, SetupNotice, ACTION_LABELS, actionDetail } from '@/features/admin/components/bits';
 import { formatBRL } from '@/lib/money';
@@ -29,6 +33,15 @@ export default async function AdminOverviewPage() {
   } catch (err) {
     if (err instanceof AdminSetupError) return <><PageHeader title="Visão geral" /><SetupNotice message={err.message} /></>;
     throw err;
+  }
+
+  // Resumo do site nos últimos 7 dias (se a contagem de acessos já estiver ativa).
+  let site = null;
+  try {
+    const range = periodRange('7');
+    site = summarize({ events: await siteEventsSince(range.from.toISOString()), users, assistances, range }).totals;
+  } catch (err) {
+    if (!(err instanceof SiteSetupError)) throw err;
   }
 
   const now = Date.now();
@@ -119,6 +132,20 @@ export default async function AdminOverviewPage() {
         </Card>
 
         <div className="space-y-6">
+          <Card>
+            <CardHeader title="Site · últimos 7 dias" actions={<Link href="/admin/site" className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:underline">Ver acessos <ArrowRight className="size-4" aria-hidden="true" /></Link>} />
+            {site ? (
+              <dl className="grid grid-cols-3 divide-x divide-slate-100 text-center">
+                {[['Visitas', site.visits], ['Clicaram em teste', site.ctaVisits], ['Novas contas', site.newUsers]].map(([k, v]) => (
+                  <div key={k} className="px-2 py-4">
+                    <dt className="text-xs text-slate-500">{k}</dt>
+                    <dd className="tabular mt-1 text-xl font-semibold text-slate-900">{fmtNum(v)}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : <CardContent className="text-sm text-slate-500">Contagem de acessos ainda não ativada (migration 0016).</CardContent>}
+          </Card>
+
           <Card>
             <CardHeader title="Últimas assistências" actions={<Link href="/admin/assistencias" className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:underline">Todas <ArrowRight className="size-4" aria-hidden="true" /></Link>} />
             <ul className="divide-y divide-slate-100">
