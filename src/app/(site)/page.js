@@ -1,12 +1,15 @@
 import Link from 'next/link';
 import {
   ClipboardList, Camera, FileText, Smartphone, Wallet, ShieldCheck, ArrowRight, CircleCheck, QrCode,
-  BadgeCheck, CalendarClock, ListChecks, Printer,
+  BadgeCheck, CalendarClock, ListChecks, Printer, MessageCircle,
 } from 'lucide-react';
 import { Logo } from '@/components/layout/logo';
 import { ButtonLink } from '@/components/ui/button';
 import { PLANS, PLAN_FEATURES, TRIAL_DAYS } from '@/lib/billing';
 import { SiteTracker } from '@/features/analytics/components/site-tracker';
+import { MobileCtaBar } from '@/features/site/components/mobile-cta-bar';
+import { CampaignNote } from '@/features/site/components/campaign-note';
+import { whatsappLink } from '@/lib/contact';
 
 const features = [
   { icon: ClipboardList, title: 'Ordem de serviço em 1 minuto', text: 'Cliente, equipamento, defeito, acessórios e condição de entrada num fluxo rápido de balcão. Número OS-2026-000123 gerado na hora.' },
@@ -15,6 +18,18 @@ const features = [
   { icon: Smartphone, title: 'Aprovação pelo celular', text: 'O cliente acompanha a OS e aprova ou recusa o orçamento no link da sua assistência, sem instalar nada.' },
   { icon: Wallet, title: 'Caixa sem complicação', text: 'Entradas, saídas, valores previstos e a receber, lucro estimado por OS e indicadores do período.' },
   { icon: ShieldCheck, title: 'Seus dados isolados', text: 'Cada assistência é isolada no próprio banco de dados. Ninguém de fora enxerga seus clientes ou números.' },
+];
+
+const WHATSAPP = whatsappLink();
+const monthly = PLANS.monthly;
+
+const faq = [
+  ['Preciso instalar alguma coisa?', 'Não. O TecnoFix funciona no navegador do celular e do computador. Seu cliente também não instala nada: abre o link ou o QR code do comprovante.'],
+  ['Precisa de cartão para testar?', `Não. São ${TRIAL_DAYS} dias com tudo liberado, sem cartão de crédito. Você só paga se decidir assinar.`],
+  ['Quanto custa depois do teste?', `${monthly.priceLabel.replace('/mês', ' por mês')}, sem fidelidade, ou ${PLANS.yearly.priceLabel.replace('/ano', ' por ano')} (${PLANS.yearly.note}). Pagamento pelo Mercado Pago.`],
+  ['E se eu não assinar?', 'Nada é apagado. Você continua vendo e concluindo as ordens de serviço que já existem.'],
+  ['Serve para a minha assistência?', 'Serve para quem conserta celular, informática, eletrônicos ou eletrodomésticos: recebe o aparelho, faz o orçamento e entrega com garantia.'],
+  ['Minha equipe pode usar?', 'Pode. Você convida técnicos e atendentes e escolhe o que cada um pode ver e fazer.'],
 ];
 
 const steps = ['Receba', 'Registre', 'Fotografe', 'Diagnostique', 'Orce', 'Cliente aprova', 'Conserte', 'Receba o pagamento', 'Entregue com garantia'];
@@ -34,27 +49,36 @@ export default function LandingPage() {
         <Logo />
         <nav className="flex items-center gap-1 sm:gap-2">
           <ButtonLink href="/entrar" variant="ghost" size="sm" className="sm:h-10 sm:px-4" data-track="topo-entrar">Entrar</ButtonLink>
-          <ButtonLink href="/cadastro" size="sm" className="sm:h-10 sm:px-4" data-track="topo-criar-conta">Criar conta<span className="hidden sm:inline">&nbsp;grátis</span></ButtonLink>
+          <ButtonLink href="/cadastro" size="sm" className="sm:h-10 sm:px-4" data-track="topo-criar-conta"><span>Criar conta<span className="hidden sm:inline"> grátis</span></span></ButtonLink>
         </nav>
       </header>
 
-      <section className="mx-auto grid max-w-6xl items-center gap-12 px-6 pb-20 pt-10 lg:grid-cols-2">
+      <section className="mx-auto grid max-w-6xl items-center gap-12 px-6 pb-16 pt-4 sm:pb-20 sm:pt-10 lg:grid-cols-[1.15fr_1fr]">
         <div>
           <p className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700">
-            Para assistências de eletrônicos e eletrodomésticos
+            Sistema para assistência técnica
           </p>
-          <h1 className="mt-5 text-4xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-5xl">
-            Do balcão à entrega, cada conserto sob controle.
+          <h1 className="mt-4 text-[2rem] font-semibold leading-[1.15] tracking-tight text-slate-900 sm:mt-5 sm:text-5xl sm:leading-tight">
+            Chega de OS no caderno e orçamento perdido no WhatsApp.
           </h1>
-          <p className="mt-5 text-lg leading-relaxed text-slate-600">
-            Abra ordens de serviço, registre fotos, envie orçamentos que o cliente aprova pelo celular, entregue com certificado de garantia e acompanhe o caixa da sua assistência num só lugar.
+          <p className="mt-4 text-base leading-relaxed text-slate-600 sm:mt-5 sm:text-lg">
+            No TecnoFix você abre a ordem de serviço em 1 minuto, manda o orçamento que o cliente aprova pelo celular e entrega o aparelho com certificado de garantia.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <ButtonLink href="/cadastro" size="lg" data-track="hero-teste-gratis">
+          <div className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap">
+            <ButtonLink id="cta-principal" href="/cadastro" size="lg" className="w-full font-semibold sm:w-auto" data-track="hero-teste-gratis">
               Testar grátis por {TRIAL_DAYS} dias <ArrowRight className="size-4" aria-hidden="true" />
             </ButtonLink>
-            <ButtonLink href="/entrar" variant="outline" size="lg" data-track="hero-ja-tenho-conta">Já tenho conta</ButtonLink>
+            <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" data-track="hero-whatsapp"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-emerald-600 bg-white px-6 text-base font-medium text-emerald-800 hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 sm:w-auto">
+              <MessageCircle className="size-5" aria-hidden="true" /> Tirar dúvida no WhatsApp
+            </a>
           </div>
+          <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-slate-600">
+            {['Sem cartão de crédito', 'Cadastro em 2 minutos', `Depois, ${monthly.priceLabel} sem fidelidade`].map((t) => (
+              <li key={t} className="flex items-center gap-1.5"><CircleCheck className="size-4 shrink-0 text-emerald-600" aria-hidden="true" />{t}</li>
+            ))}
+          </ul>
+          <CampaignNote />
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
@@ -97,6 +121,12 @@ export default function LandingPage() {
                 <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{text}</p>
               </div>
             ))}
+          </div>
+          <div className="mt-10 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-5">
+            <ButtonLink href="/cadastro" size="lg" className="w-full font-semibold sm:w-auto" data-track="meio-teste-gratis">
+              Testar grátis por {TRIAL_DAYS} dias <ArrowRight className="size-4" aria-hidden="true" />
+            </ButtonLink>
+            <p className="text-sm text-slate-600">Sem cartão. Tudo liberado desde o primeiro dia.</p>
           </div>
         </div>
       </section>
@@ -198,6 +228,28 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="mx-auto max-w-3xl px-6 pt-16">
+        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Perguntas frequentes</h2>
+        <div className="mt-6 divide-y divide-slate-200 rounded-2xl border border-slate-200">
+          {faq.map(([q, a]) => (
+            <details key={q} className="group px-5 py-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium text-slate-900 [&::-webkit-details-marker]:hidden">
+                {q}
+                <span aria-hidden="true" className="text-xl leading-none text-slate-400 transition-transform group-open:rotate-45">+</span>
+              </summary>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">{a}</p>
+            </details>
+          ))}
+        </div>
+        <p className="mt-4 text-sm text-slate-600">
+          Ficou outra dúvida?{' '}
+          <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" data-track="duvidas-whatsapp" className="font-medium text-emerald-700 underline-offset-4 hover:underline">
+            Chame no WhatsApp
+          </a>
+          . A resposta vem direto da equipe do TecnoFix.
+        </p>
+      </section>
+
       <section className="mx-auto max-w-6xl px-6 py-16">
         <div className="rounded-2xl bg-slate-900 px-8 py-10 text-white">
           <h2 className="text-2xl font-semibold">Comece hoje com a sua assistência</h2>
@@ -212,9 +264,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-slate-200 py-8 text-center text-xs text-slate-500">
+      <footer className="border-t border-slate-200 pb-28 pt-8 text-center text-xs text-slate-500 sm:pb-8">
         © 2026 BSM Technology · TecnoFix
       </footer>
+
+      <MobileCtaBar watchId="cta-principal" days={TRIAL_DAYS} whatsappHref={WHATSAPP} />
     </div>
   );
 }

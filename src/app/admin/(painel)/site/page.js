@@ -75,9 +75,9 @@ export default async function AdminSitePage({ searchParams }) {
       />
 
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-        <StatCard label="Visitas" value={fmtNum(t.visits)} hint={`${plural(t.pageViews, 'página vista', 'páginas vistas')}`} />
+        <StatCard label="Visitas" value={fmtNum(t.visits)} hint={t.visits ? `${t.bounceRate.toLocaleString('pt-BR')}% saíram sem clicar em nada` : plural(t.pageViews, 'página vista', 'páginas vistas')} />
         <StatCard label="Visitantes" value={fmtNum(t.people)} hint="Pessoas diferentes, contadas por dia" />
-        <StatCard label="Clicaram em teste grátis" value={fmtNum(t.ctaVisits)} hint={plural(t.ctaClicks, 'clique', 'cliques')} />
+        <StatCard label="Clicaram em teste grátis" value={fmtNum(t.ctaVisits)} hint={`${plural(t.ctaClicks, 'clique', 'cliques')} · ${fmtNum(t.whatsappVisits)} no WhatsApp`} />
         <StatCard label="Abriram o cadastro" value={fmtNum(t.signupVisits)} hint={t.visits ? `${Math.round((t.signupVisits / t.visits) * 100)}% das visitas` : '—'} />
         <StatCard label="Novas contas" value={fmtNum(t.newUsers)} tone={t.newUsers ? 'positive' : 'default'} hint="Criadas no período" />
         <StatCard label="Conversão" value={`${t.conversion.toLocaleString('pt-BR')}%`} hint="Novas contas ÷ visitas" />
@@ -128,7 +128,8 @@ export default async function AdminSitePage({ searchParams }) {
           <CardContent>
             <BarList items={r.origins.map((o) => ({ label: o.label, value: o.value, extra: o.signup }))} extraLabel="no cadastro" />
             <p className="mt-4 text-xs text-slate-500">
-              Quem toca no link da mensagem do WhatsApp (tecnofix.pro/14dias) aparece como &quot;WhatsApp · convite-14-dias&quot;.
+              Links de campanha: tecnofix.pro/14dias (mensagem do WhatsApp), tecnofix.pro/anuncio (anúncio pago)
+              e tecnofix.pro/grupos (posts em grupos). Cada um aparece aqui com o próprio nome.
             </p>
           </CardContent>
         </Card>

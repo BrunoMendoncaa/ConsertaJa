@@ -3,6 +3,7 @@ import { parseUserAgent, isBot } from '@/features/analytics/ua';
 import { originOf, referrerHost, sourceFromHost } from '@/features/analytics/sources';
 import { buildEvent, visitorCode, isSameOrigin } from '@/features/analytics/record';
 import { summarize, periodRange, daysOf } from '@/features/analytics/stats';
+import { whatsappLink } from '@/lib/contact';
 
 const ANDROID = 'Mozilla/5.0 (Linux; Android 14; SM-A546E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36';
 const IPHONE_IG = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 345.0';
@@ -61,6 +62,14 @@ describe('acessos do site: evento recebido', () => {
     expect(r.row).toMatchObject({ p_path: '/14dias', p_utm_source: 'whatsapp', p_utm_campaign: 'convite-14-dias' });
   });
 
+  it('links do anúncio e dos grupos marcam o Facebook com campanhas separadas', () => {
+    const a = buildEvent({ headers: hdrs(), body: { event: 'page_view', path: '/anuncio' }, salt: 's', now });
+    const g = buildEvent({ headers: hdrs(), body: { event: 'page_view', path: '/grupos' }, salt: 's', now });
+    expect(a.row).toMatchObject({ p_path: '/anuncio', p_utm_source: 'facebook', p_utm_campaign: 'anuncio' });
+    expect(g.row).toMatchObject({ p_path: '/grupos', p_utm_source: 'facebook', p_utm_campaign: 'grupos' });
+    expect(originOf({ utm_source: 'facebook', utm_campaign: 'grupos' })).toBe('Facebook · grupos');
+  });
+
   it('o código do visitante muda de um dia para o outro', () => {
     const a = visitorCode({ ip: '1.1.1.1', ua: ANDROID, salt: 's', now });
     expect(visitorCode({ ip: '1.1.1.1', ua: ANDROID, salt: 's', now: new Date(now.getTime() + 3600000) })).toBe(a);
@@ -114,7 +123,22 @@ describe('acessos do site: resumo da tela Site', () => {
     expect(r.origins.find((o) => o.label.startsWith('WhatsApp'))).toMatchObject({ value: 1, signup: 1 });
     expect(r.cities.map((c) => c.label).sort()).toEqual(['Bauru · SP', 'Recife · PE']);
     expect(r.devices.map((d) => d.label).sort()).toEqual(['Celular', 'Computador']);
-    expect(r.recent[0]).toMatchObject({ place: 'Bauru/SP', clicked: true, pages: ['Página inicial (link da campanha)', 'Cadastro'] });
+    expect(r.recent[0]).toMatchObject({ place: 'Bauru/SP', clicked: true, pages: ['Página inicial (link do WhatsApp)', 'Cadastro'] });
+  });
+
+  it('conta quem chamou no WhatsApp e quem saiu sem clicar', () => {
+    const r = summarize({
+      range,
+      events: [
+        ev({ session: 'w1', created_at: at(3) }),
+        ev({ session: 'w1', created_at: at(2.9), event: 'cta_click', label: 'hero-whatsapp' }),
+        ev({ session: 'b1', visitor: 'v2', created_at: at(3) }),
+        ev({ session: 'b2', visitor: 'v3', created_at: at(3) }),
+        ev({ session: 'c1', visitor: 'v4', created_at: at(3) }),
+        ev({ session: 'c1', visitor: 'v4', created_at: at(2.9), event: 'cta_click', label: 'barra-teste-gratis' }),
+      ],
+    });
+    expect(r.totals).toMatchObject({ visits: 4, whatsappVisits: 1, ctaVisits: 1, bounced: 2, bounceRate: 50 });
   });
 
   it('funil sem visitas registradas não mostra % sem sentido (caso real: contas antes da contagem)', () => {
@@ -136,5 +160,13 @@ describe('acessos do site: resumo da tela Site', () => {
     expect(periodRange('hoje', now).from.toISOString()).toBe('2026-10-19T03:00:00.000Z');
     expect(daysOf(periodRange('30', now))).toHaveLength(30);
     expect(periodRange('xyz', now).key).toBe('7');
+  });
+});
+
+describe('contato pelo WhatsApp', () => {
+  it('monta o link com o número e a mensagem pronta', () => {
+    const url = new URL(whatsappLink('Olá! Quero mais 14 dias'));
+    expect(url.origin + url.pathname).toBe('https://wa.me/5511993020625');
+    expect(url.searchParams.get('text')).toBe('Olá! Quero mais 14 dias');
   });
 });

@@ -287,7 +287,7 @@ Em `/admin/site`: visitas da página inicial, do cadastro e do entrar.
 
 A visão geral da área admin tem um resumo dos últimos 7 dias.
 
-**Links de campanha.** `https://tecnofix.pro/14dias` mostra a página inicial e marca a visita como "WhatsApp · convite-14-dias" (lista em `src/features/analytics/constants.js`). Links com `?utm_source=...&utm_campaign=...` também são reconhecidos. A campanha vale para a visita inteira (inclusive o cadastro).
+**Links de campanha.** `https://tecnofix.pro/14dias` (mensagem do WhatsApp), `/anuncio` (anúncio pago no Facebook/Instagram) e `/grupos` (posts em grupos) mostram a página inicial e marcam a origem da visita, por exemplo "WhatsApp · convite-14-dias" e "Facebook · grupos" (lista em `src/features/analytics/constants.js`; cada link novo precisa de um rewrite no `next.config.mjs`). O botão "Tirar dúvida no WhatsApp" da página usa o número de `src/lib/contact.js`. Links com `?utm_source=...&utm_campaign=...` também são reconhecidos. A campanha vale para a visita inteira (inclusive o cadastro).
 
 **Como funciona.**
 - O componente `SiteTracker` (landing e páginas de login/cadastro) manda cada visita e cada clique em botão com `data-track` para `POST /api/site/evento`.

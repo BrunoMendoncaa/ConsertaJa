@@ -1,5 +1,5 @@
 import { originOf } from './sources';
-import { PAGE_LABELS, CTA_LABELS, SIGNUP_CTAS } from './constants';
+import { PAGE_LABELS, CTA_LABELS, SIGNUP_CTAS, WHATSAPP_CTAS } from './constants';
 
 // Números da tela "Site" (área admin) a partir dos eventos gravados em site_events.
 // Funções puras: recebem as linhas e devolvem o resumo (testado em tests/analytics.test.js).
@@ -126,6 +126,11 @@ export function summarize({ events = [], users = [], assistances = [], payments 
       pageViews: evs.filter((e) => e.event === 'page_view').length,
       ctaClicks: evs.filter((e) => e.event === 'cta_click' && SIGNUP_CTAS.includes(e.label)).length,
       ctaVisits: visits.filter((s) => s.clicks.some((l) => SIGNUP_CTAS.includes(l))).length,
+      // Chamaram no WhatsApp para tirar dúvida (também é lead).
+      whatsappVisits: visits.filter((s) => s.clicks.some((l) => WHATSAPP_CTAS.includes(l))).length,
+      // Saíram sem clicar em nada e sem abrir outra página do site.
+      bounced: visits.filter((s) => !s.clicks.length && s.pages.length === 1).length,
+      bounceRate: pct(visits.filter((s) => !s.clicks.length && s.pages.length === 1).length, visits.length),
       signupVisits,
       newUsers,
       conversion: pct(newUsers, visits.length),

@@ -30,7 +30,8 @@ const nextConfig = {
   // Links curtos de campanha: mostram a página inicial e marcam a origem da visita
   // (ver src/features/analytics/constants.js). Ex.: https://tecnofix.pro/14dias
   async rewrites() {
-    return [{ source: '/14dias', destination: '/' }];
+    // /grupos é uma página própria (src/app/(site)/grupos), com o cartão de link dos posts em grupos.
+    return ['/14dias', '/anuncio'].map((source) => ({ source, destination: '/' }));
   },
   async redirects() {
     const host = publicHost();
