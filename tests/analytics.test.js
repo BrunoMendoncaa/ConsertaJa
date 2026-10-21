@@ -22,6 +22,9 @@ describe('acessos do site: navegador e origem', () => {
 
   it('robôs e prévias de link não contam (inclusive o WhatsApp montando o cartão)', () => {
     expect(isBot('WhatsApp/2.23.20.0 A')).toBe(true);
+    expect(isBot('WhatsApp/2.24.1.5 i')).toBe(true);
+    // Navegador de verdade aberto de dentro do WhatsApp: é gente e conta.
+    expect(isBot(`${ANDROID} WhatsApp/2.24.21.80`)).toBe(false);
     expect(isBot('facebookexternalhit/1.1')).toBe(true);
     expect(isBot('Googlebot/2.1')).toBe(true);
     expect(isBot('')).toBe(true);
@@ -139,6 +142,29 @@ describe('acessos do site: resumo da tela Site', () => {
       ],
     });
     expect(r.totals).toMatchObject({ visits: 4, whatsappVisits: 1, ctaVisits: 1, bounced: 2, bounceRate: 50 });
+  });
+
+  it('visitas de fora do Brasil (robôs em data center) ficam fora dos números e aparecem à parte', () => {
+    const r = summarize({
+      range,
+      events: [
+        ev({ session: 'br1', created_at: at(5), country: 'BR', city: 'Vitória', region: 'ES', device: 'mobile' }),
+        ev({ session: 'us1', visitor: 'b1', created_at: at(4), country: 'US', city: 'Council Bluffs', region: 'IA', device: 'desktop' }),
+        ev({ session: 'us2', visitor: 'b2', created_at: at(3), country: 'US', city: 'Ashburn', region: 'VA', device: 'desktop' }),
+        ev({ session: 'us2', visitor: 'b2', created_at: at(2.9), event: 'cta_click', label: 'hero-teste-gratis', country: 'US' }),
+        ev({ session: 'tw1', visitor: 'b3', created_at: at(2), country: 'TW', city: 'Taipei', device: 'desktop' }),
+        ev({ session: 'semPais', visitor: 'v9', created_at: at(1) }), // sem país (ex.: ambiente local): conta
+      ],
+    });
+    expect(r.totals).toMatchObject({ visits: 2, people: 2, pageViews: 2, ctaClicks: 0, ctaVisits: 0 });
+    expect(r.funnel[0].value).toBe(2);
+    expect(r.cities.map((c) => c.label).sort()).toEqual(['Sem localização', 'Vitória · ES']);
+    expect(r.cities.some((c) => /Ashburn|Council|Taipei/.test(c.label))).toBe(false);
+    expect(r.foreign.visits).toBe(3);
+    expect(r.foreign.events).toBe(4);
+    expect(r.foreign.cities.map((c) => c.label).sort()).toEqual(['Ashburn · US', 'Council Bluffs · US', 'Taipei · TW']);
+    expect(r.foreign.recent[0]).toMatchObject({ place: 'Taipei', country: 'TW', device: 'Computador' });
+    expect(r.recent.every((v) => !v.country || v.country === 'BR')).toBe(true);
   });
 
   it('funil sem visitas registradas não mostra % sem sentido (caso real: contas antes da contagem)', () => {

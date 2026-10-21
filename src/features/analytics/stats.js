@@ -44,7 +44,7 @@ export function summarize({ events = [], users = [], assistances = [], payments 
     const t = new Date(iso).getTime();
     return t >= range.from.getTime() && t <= range.to.getTime();
   };
-  const evs = events.filter((e) => inRange(e.created_at)).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  let evs = events.filter((e) => inRange(e.created_at)).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
   // Visita = sessão da aba (código aleatório). Sem ele, cai no visitante do dia.
   const sessions = new Map();
@@ -63,7 +63,15 @@ export function summarize({ events = [], users = [], assistances = [], payments 
       s.clicks.push(e.label);
     }
   }
-  const visits = [...sessions.values()].filter((s) => s.views > 0);
+  // Visita de fora do Brasil: quase sempre robô em data center (Google, Amazon, Facebook conferindo
+  // links) que abre a página num navegador de verdade. Fica fora dos números e aparece à parte.
+  const isForeign = (s) => Boolean(s.first.country) && String(s.first.country).toUpperCase() !== 'BR';
+  const allVisits = [...sessions.values()].filter((s) => s.views > 0);
+  const foreign = allVisits.filter(isForeign);
+  const visits = allVisits.filter((s) => !isForeign(s));
+  const foreignKeys = new Set([...sessions.values()].filter(isForeign).map((s) => s.key));
+  const evsAll = evs;
+  evs = evs.filter((e) => !foreignKeys.has(e.session || `v:${e.visitor}`));
   const reachedSignup = (s) => s.pages.includes('/cadastro');
 
   const days = daysOf(range);
@@ -100,6 +108,12 @@ export function summarize({ events = [], users = [], assistances = [], payments 
   for (const e of evs) if (e.event === 'page_view') pages.set(e.path, (pages.get(e.path) || 0) + 1);
   const ctas = new Map();
   for (const e of evs) if (e.event === 'cta_click') ctas.set(e.label, (ctas.get(e.label) || 0) + 1);
+
+  const foreignCities = new Map();
+  for (const s of foreign) {
+    const place = s.first.city ? `${s.first.city} · ${s.first.country}` : s.first.country;
+    foreignCities.set(place, (foreignCities.get(place) || 0) + 1);
+  }
 
   const newUsers = users.filter((u) => inRange(u.created_at)).length;
   const newAssistances = assistances.filter((a) => inRange(a.created_at)).length;
@@ -144,15 +158,26 @@ export function summarize({ events = [], users = [], assistances = [], payments 
     pages: top(pages, 6).map(([path, value]) => ({ label: PAGE_LABELS[path] || path, path, value })),
     ctas: top(ctas, 6).map(([key, value]) => ({ label: CTA_LABELS[key] || key, value })),
     funnel,
-    recent: visits.slice(-15).reverse().map((s) => ({
-      key: s.key,
-      start: s.start,
-      origin: originOf(s.first),
-      place: s.first.city ? `${s.first.city}${s.first.region ? `/${s.first.region}` : ''}` : null,
-      device: { mobile: 'Celular', tablet: 'Tablet', desktop: 'Computador' }[s.first.device] || 'Outro',
-      browser: s.first.browser,
-      pages: s.pages.map((p) => PAGE_LABELS[p] || p),
-      clicked: s.clicks.some((l) => SIGNUP_CTAS.includes(l)),
-    })),
+    recent: visits.slice(-15).reverse().map(visitRow),
+    foreign: {
+      visits: foreign.length,
+      events: evsAll.length - evs.length,
+      cities: top(foreignCities, 8).map(([label, value]) => ({ label, value })),
+      recent: foreign.slice(-30).reverse().map(visitRow),
+    },
+  };
+}
+
+function visitRow(s) {
+  return {
+    key: s.key,
+    start: s.start,
+    origin: originOf(s.first),
+    place: s.first.city ? `${s.first.city}${s.first.region ? `/${s.first.region}` : ''}` : null,
+    country: s.first.country || null,
+    device: { mobile: 'Celular', tablet: 'Tablet', desktop: 'Computador' }[s.first.device] || 'Outro',
+    browser: s.first.browser,
+    pages: s.pages.map((p) => PAGE_LABELS[p] || p),
+    clicked: s.clicks.some((l) => SIGNUP_CTAS.includes(l)),
   };
 }

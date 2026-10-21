@@ -85,6 +85,13 @@ export default async function AdminSitePage({ searchParams }) {
         <StatCard label="Conversão" value={`${t.conversion.toLocaleString('pt-BR')}%`} hint="Novas contas ÷ visitas" />
       </div>
 
+      {r.foreign.visits > 0 && (
+        <p className="-mt-2 mb-6 text-sm text-slate-500">
+          {plural(r.foreign.visits, 'visita de fora do Brasil não entra', 'visitas de fora do Brasil não entram')} nos números (prováveis robôs).{' '}
+          <a href="#fora-do-brasil" className="font-medium text-brand-700 hover:underline">Ver quais</a>
+        </p>
+      )}
+
       <Card className="mb-6">
         <CardHeader
           title={today ? 'Visitas hoje, por hora' : `Visitas por dia · ${range.label}`}
@@ -204,12 +211,42 @@ export default async function AdminSitePage({ searchParams }) {
         ) : <CardContent className="text-sm text-slate-500">Nenhuma visita no período ainda.</CardContent>}
       </Card>
 
+      <Card id="fora-do-brasil" className="mb-6 scroll-mt-24">
+        <CardHeader
+          title="Fora do Brasil (prováveis robôs)"
+          description="Não entram nos números acima. Quase sempre são servidores do Google, Amazon, Facebook e outros abrindo a página para conferir o link; quem usa VPN também pode aparecer aqui."
+        />
+        {r.foreign.visits ? (
+          <CardContent className="space-y-4">
+            <BarList items={r.foreign.cities} />
+            <details className="text-sm">
+              <summary className="cursor-pointer text-slate-500 hover:text-slate-700">Ver as {plural(r.foreign.visits, 'visita', 'visitas')}</summary>
+              <div className="mt-2 max-h-80 overflow-auto">
+                <Table>
+                  <THead><tr><TH>Quando</TH><TH>Cidade</TH><TH>Aparelho</TH><TH>Origem</TH></tr></THead>
+                  <TBody>
+                    {r.foreign.recent.map((v) => (
+                      <tr key={v.key}>
+                        <TD className="whitespace-nowrap">{formatDateTime(v.start)}</TD>
+                        <TD>{v.place || '—'}{v.country && <span className="ml-1 text-xs text-slate-500">({v.country})</span>}</TD>
+                        <TD className="whitespace-nowrap">{v.device} <span className="text-xs text-slate-500">{v.browser}</span></TD>
+                        <TD className="text-xs text-slate-600">{v.origin}</TD>
+                      </tr>
+                    ))}
+                  </TBody>
+                </Table>
+              </div>
+            </details>
+          </CardContent>
+        ) : <CardContent className="text-sm text-slate-500">Nenhuma no período.</CardContent>}
+      </Card>
+
       <Card>
         <CardContent className="space-y-3">
           <NoTrackToggle />
           <p className="text-xs leading-relaxed text-slate-500">
             Como é contado: só a página inicial, o cadastro e o entrar. Sem cookies e sem guardar IP: cada visitante vira um
-            código que muda todo dia, e a localização é aproximada (cidade). Robôs e a prévia de link do WhatsApp não contam.
+            código que muda todo dia, e a localização é aproximada (cidade). Robôs e a prévia de link do WhatsApp não contam, e visitas de fora do Brasil ficam à parte.
             Os dados ficam 13 meses.
           </p>
         </CardContent>
