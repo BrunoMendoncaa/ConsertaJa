@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import { Wrench, LogOut } from 'lucide-react';
+import { Wrench, LogOut, KeyRound } from 'lucide-react';
 import { requireAdmin } from '@/features/admin/session';
+import { allowedSections } from '@/features/admin/permissions';
 import { adminSignOut } from '@/features/admin/actions';
 import { AdminNav } from '@/features/admin/components/admin-nav';
 import { RefreshButton } from '@/features/admin/components/refresh-button';
@@ -8,7 +9,9 @@ import { RefreshButton } from '@/features/admin/components/refresh-button';
 export const dynamic = 'force-dynamic';
 
 export default async function AdminLayout({ children }) {
-  const session = await requireAdmin();
+  // Cada página confere a própria permissão; aqui só o login (e deixa abrir a troca de senha).
+  const session = await requireAdmin(null, { allowPasswordChange: true });
+  const items = session.mustChangePassword ? [] : allowedSections(session).map(({ href, label }) => ({ href, label }));
   return (
     <div className="min-h-dvh bg-slate-50">
       <header className="sticky top-0 z-30 bg-slate-900 text-white shadow-sm print:hidden">
@@ -20,11 +23,19 @@ export default async function AdminLayout({ children }) {
             <span>Tecno<span className="text-accent-500">Fix</span></span>
             <span className="rounded bg-accent-500 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-900">Admin</span>
           </Link>
-          <AdminNav />
+          <AdminNav items={items} />
           <div className="ml-auto flex items-center gap-1 sm:gap-3">
             <RefreshButton renderedAt={new Date().toISOString()} />
+            {!session.master && (
+              <Link href="/admin/minha-senha" className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white" title="Trocar minha senha">
+                <KeyRound className="size-4" aria-hidden="true" /><span className="hidden lg:inline">Minha senha</span>
+              </Link>
+            )}
             <form action={adminSignOut} className="flex items-center gap-3">
-              <span className="hidden text-sm text-slate-400 sm:inline">{session.username}</span>
+              <span className="hidden text-sm text-slate-400 sm:inline">
+                {session.name || session.username}
+                {session.master && <span className="ml-1.5 rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-300">Master</span>}
+              </span>
               <button type="submit" className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-slate-300 hover:bg-white/10 hover:text-white">
                 <LogOut className="size-4" aria-hidden="true" /> Sair
               </button>

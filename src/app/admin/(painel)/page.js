@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
@@ -13,6 +14,8 @@ import { situationKey, dueInfo, monthlyValue } from '@/features/admin/format';
 import { SituationBadge, DueCell, OwnerContact, SetupNotice, ACTION_LABELS, actionDetail } from '@/features/admin/components/bits';
 import { formatBRL } from '@/lib/money';
 import { formatDate, formatDateTime } from '@/lib/dates';
+import { requireAdmin } from '@/features/admin/session';
+import { can, homeFor } from '@/features/admin/permissions';
 
 export const metadata = { title: 'Visão geral' };
 
@@ -25,10 +28,17 @@ function monthStartISO() {
 }
 
 export default async function AdminOverviewPage() {
+  const session = await requireAdmin();
+  if (!can(session, 'visao_geral')) redirect(homeFor(session));
+  const money = can(session, 'financeiro');
+  const seeAssistances = can(session, 'assistencias_ver');
+  const seeSite = can(session, 'site_ver');
+
   let assistances, users, payments, actions;
   try {
     [assistances, users, payments, actions] = await Promise.all([
-      listAssistances(), listUsers(), approvedPaymentsSince(monthStartISO()), recentAdminActions(6),
+      listAssistances(), listUsers(), money ? approvedPaymentsSince(monthStartISO()) : [],
+      recentAdminActions(6, session.master ? null : session.username),
     ]);
   } catch (err) {
     if (err instanceof AdminSetupError) return <><PageHeader title="Visão geral" /><SetupNotice message={err.message} /></>;
@@ -37,7 +47,7 @@ export default async function AdminOverviewPage() {
 
   // Resumo do site nos últimos 7 dias (se a contagem de acessos já estiver ativa).
   let site = null;
-  try {
+  if (seeSite) try {
     const range = periodRange('7');
     site = summarize({ events: await siteEventsSince(range.from.toISOString()), users, assistances, range }).totals;
   } catch (err) {
@@ -80,17 +90,17 @@ export default async function AdminOverviewPage() {
       </section>
 
       <section aria-labelledby="h-rec" className="mb-8">
-        <h2 id="h-rec" className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Receita e crescimento</h2>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <StatCard label="Receita mensal recorrente" value={formatBRL(mrr)} tone="positive" hint="Assinaturas pagando (anual ÷ 12)" />
-          <StatCard label="Recebido no mês" value={formatBRL(received)} hint={`${payments.length} pagamento(s) aprovado(s)`} />
+        <h2 id="h-rec" className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">{money ? 'Receita e crescimento' : 'Crescimento'}</h2>
+        <div className={`grid grid-cols-2 gap-4 ${money ? 'md:grid-cols-4' : ''}`}>
+          {money && <StatCard label="Receita mensal recorrente" value={formatBRL(mrr)} tone="positive" hint="Assinaturas pagando (anual ÷ 12)" />}
+          {money && <StatCard label="Recebido no mês" value={formatBRL(received)} hint={`${payments.length} pagamento(s) aprovado(s)`} />}
           <StatCard label="Novas em 30 dias" value={created(30)} hint={`${created(7)} nos últimos 7 dias`} />
           <StatCard label="Pessoas cadastradas" value={users.length} hint={`${withoutAssistance} sem assistência`} />
         </div>
       </section>
 
       <div className="grid gap-6 xl:grid-cols-3">
-        <Card className="h-fit xl:col-span-2">
+        {seeAssistances && <Card className="h-fit xl:col-span-2">
           <CardHeader title="Precisam de atenção" description="Teste acabando sem assinar, pagamento pendente e testes encerrados nos últimos 14 dias." />
           {attention.length ? (
             <>
@@ -129,10 +139,10 @@ export default async function AdminOverviewPage() {
               </div>
             </>
           ) : <CardContent className="text-sm text-slate-500">Nada pendente agora.</CardContent>}
-        </Card>
+        </Card>}
 
-        <div className="space-y-6">
-          <Card>
+        <div className={`space-y-6 ${seeAssistances ? '' : 'xl:col-span-3 xl:grid xl:grid-cols-3 xl:gap-6 xl:space-y-0'}`}>
+          {seeSite && <Card>
             <CardHeader title="Site · últimos 7 dias" actions={<Link href="/admin/site" className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:underline">Ver acessos <ArrowRight className="size-4" aria-hidden="true" /></Link>} />
             {site ? (
               <dl className="grid grid-cols-3 divide-x divide-slate-100 text-center">
@@ -144,9 +154,9 @@ export default async function AdminOverviewPage() {
                 ))}
               </dl>
             ) : <CardContent className="text-sm text-slate-500">Contagem de acessos ainda não ativada (migration 0016).</CardContent>}
-          </Card>
+          </Card>}
 
-          <Card>
+          {seeAssistances && <Card>
             <CardHeader title="Últimas assistências" actions={<Link href="/admin/assistencias" className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:underline">Todas <ArrowRight className="size-4" aria-hidden="true" /></Link>} />
             <ul className="divide-y divide-slate-100">
               {newest.map((a) => (
@@ -162,18 +172,20 @@ export default async function AdminOverviewPage() {
               ))}
               {!newest.length && <li className="px-5 py-3 text-sm text-slate-500">Nenhuma assistência ainda.</li>}
             </ul>
-          </Card>
+          </Card>}
 
           <Card>
-            <CardHeader title="Suas últimas ações" />
+            <CardHeader title={session.master ? 'Últimas ações na área admin' : 'Suas últimas ações'} />
             <ul className="divide-y divide-slate-100 text-sm">
               {actions.map((r) => (
                 <li key={r.id} className="px-5 py-2.5">
                   <p className="text-slate-900">
                     {ACTION_LABELS[r.action] || r.action}
-                    {r.assistance_id && <> · <Link href={`/admin/assistencias/${r.assistance_id}`} className="text-brand-700 hover:underline">abrir</Link></>}
+                    {r.assistance_id && seeAssistances && <> · <Link href={`/admin/assistencias/${r.assistance_id}`} className="text-brand-700 hover:underline">abrir</Link></>}
                   </p>
-                  <p className="text-xs text-slate-500">{formatDateTime(r.created_at)}{actionDetail(r) && ` · ${actionDetail(r)}`}</p>
+                  <p className="text-xs text-slate-500">
+                    {formatDateTime(r.created_at)}{session.master && ` · ${r.admin_username}`}{actionDetail(r) && ` · ${actionDetail(r)}`}
+                  </p>
                 </li>
               ))}
               {!actions.length && <li className="px-5 py-3 text-slate-500">Nenhuma ação ainda.</li>}

@@ -58,12 +58,50 @@ export async function siteEventsSince(isoDate, cap = 100000) {
   return out;
 }
 
-export async function recentAdminActions(limit = 8) {
-  const { data, error } = await createAdminClient()
+/** Últimas ações registradas (sem os logins). Com username, só as dessa conta. */
+export async function recentAdminActions(limit = 8, username = null) {
+  let q = createAdminClient()
     .from('admin_audit_log').select('id, admin_username, action, assistance_id, details, created_at')
-    .neq('action', 'login').order('created_at', { ascending: false }).limit(limit);
+    .neq('action', 'login');
+  if (username) q = q.eq('admin_username', username);
+  const { data, error } = await q.order('created_at', { ascending: false }).limit(limit);
   check(error, 'admin_audit_log');
   return data || [];
+}
+
+export class AccountsSetupError extends Error {}
+
+function checkAccounts(error, what) {
+  if (!error) return;
+  if (['PGRST202', 'PGRST205', '42883', '42P01'].includes(error.code)) {
+    throw new AccountsSetupError('O banco ainda não tem a tabela de acessos da área admin (migration 0017).');
+  }
+  throw new Error(`${what}: ${error.message}`);
+}
+
+const ACCOUNT_FIELDS = 'id, username, full_name, permissions, active, must_change_password, last_login_at, created_at, created_by, updated_at, password_changed_at';
+
+/** Contas de acesso à área admin (sem o hash da senha). */
+export async function listAdminAccounts() {
+  const { data, error } = await createAdminClient().from('admin_accounts').select(ACCOUNT_FIELDS).order('full_name');
+  checkAccounts(error, 'admin_accounts');
+  return data || [];
+}
+
+export async function getAdminAccount(id) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id))) return null;
+  const db = createAdminClient();
+  const { data, error } = await db.from('admin_accounts').select(ACCOUNT_FIELDS).eq('id', id).maybeSingle();
+  checkAccounts(error, 'admin_accounts');
+  if (!data) return null;
+  const { data: log, error: logErr } = await db.from('admin_audit_log')
+    .select('id, admin_username, action, assistance_id, details, created_at')
+    .or(`admin_username.eq.${data.username},details->>target.eq.${data.username}`)
+    // Só desta conta: um acesso antigo excluído com o mesmo usuário não aparece aqui.
+    .gte('created_at', data.created_at)
+    .order('created_at', { ascending: false }).limit(20);
+  check(logErr, 'admin_audit_log');
+  return { ...data, log: log || [] };
 }
 
 export async function getAssistanceDetail(id) {

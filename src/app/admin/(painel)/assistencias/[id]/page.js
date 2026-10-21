@@ -17,6 +17,8 @@ import { formatBRL } from '@/lib/money';
 import { formatDate, formatDateTime } from '@/lib/dates';
 import { formatPhone } from '@/lib/phone';
 import { formatDocument } from '@/lib/document';
+import { requireAdmin } from '@/features/admin/session';
+import { can } from '@/features/admin/permissions';
 
 export const metadata = { title: 'Assistência' };
 
@@ -34,6 +36,11 @@ function Item({ label, children }) {
 }
 
 export default async function AdminAssistancePage({ params }) {
+  const session = await requireAdmin('assistencias_ver');
+  const money = can(session, 'financeiro');
+  const canExtend = can(session, 'assistencias_estender_teste');
+  const canSuspend = can(session, 'assistencias_suspender');
+  const canSync = can(session, 'assistencias_mercado_pago');
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
   let detail;
@@ -73,12 +80,12 @@ export default async function AdminAssistancePage({ params }) {
               <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                 <Item label="Situação"><SituationBadge assistance={a} /></Item>
                 <Item label={due.label}>{due.date ? <>{formatDate(due.date)} <span className="font-normal text-slate-500">({relativeDays(due.days)})</span></> : '—'}</Item>
-                <Item label="Plano">{cycleLabel(a.billing_cycle)}{monthlyValue(a) > 0 && <span className="font-normal text-slate-500"> · {formatBRL(monthlyValue(a))}/mês</span>}</Item>
+                <Item label="Plano">{cycleLabel(a.billing_cycle)}{money && monthlyValue(a) > 0 && <span className="font-normal text-slate-500"> · {formatBRL(monthlyValue(a))}/mês</span>}</Item>
                 <Item label="Teste grátis até">{formatDate(a.trial_ends_at)}</Item>
                 <Item label="Pago até">{formatDate(a.paid_until)}</Item>
                 <Item label="Pagamento pendente desde">{a.past_due_since ? formatDate(a.past_due_since) : '—'}</Item>
                 <Item label="Assinatura no Mercado Pago">{a.mp_preapproval_id ? `${MP_STATUS[a.subscription_mp_status] || a.subscription_mp_status || '—'}` : 'Não assinou'}</Item>
-                <Item label="Valor da assinatura">{a.subscription_amount ? formatBRL(a.subscription_amount) : '—'}</Item>
+                {money && <Item label="Valor da assinatura">{a.subscription_amount ? formatBRL(a.subscription_amount) : '—'}</Item>}
                 <Item label="Última conferência no MP">{a.billing_synced_at ? formatDateTime(a.billing_synced_at) : '—'}</Item>
               </dl>
             </CardContent>
@@ -116,7 +123,7 @@ export default async function AdminAssistancePage({ params }) {
             </ul>
           </Card>
 
-          <Card>
+          {money && <Card>
             <CardHeader title="Pagamentos" description="Cobranças da assinatura no Mercado Pago." />
             {payments.length ? (
               <div className="overflow-x-auto">
@@ -148,14 +155,14 @@ export default async function AdminAssistancePage({ params }) {
                 </ul>
               </CardContent>
             )}
-          </Card>
+          </Card>}
         </div>
 
         <aside className="space-y-6">
-          <Card>
+          {(canExtend || canSync || canSuspend) && <Card>
             <CardHeader title="Ações" />
-            <CardContent className="space-y-6">
-              <ActionForm action={extendTrial} className="space-y-3">
+            <CardContent className="space-y-6 [&>*+*]:border-t [&>*+*]:border-slate-100 [&>*+*]:pt-5">
+              {canExtend && <ActionForm action={extendTrial} className="space-y-3">
                 <input type="hidden" name="assistance_id" value={a.id} />
                 <p className="text-sm font-medium text-slate-900">Estender teste grátis</p>
                 <div className="grid grid-cols-2 gap-3">
@@ -174,18 +181,18 @@ export default async function AdminAssistancePage({ params }) {
                 </Field>
                 <SubmitButton size="sm" pendingText="Salvando...">Estender teste</SubmitButton>
                 {a.mp_preapproval_id && <p className="text-xs text-slate-500">A data da cobrança já agendada no Mercado Pago não muda.</p>}
-              </ActionForm>
+              </ActionForm>}
 
-              <div className="border-t border-slate-100 pt-5">
+              {canSync && <div>
                 <ActionForm action={syncWithMercadoPago} className="space-y-2">
                   <input type="hidden" name="assistance_id" value={a.id} />
                   <p className="text-sm font-medium text-slate-900">Mercado Pago</p>
                   <p className="text-xs text-slate-500">Consulta a assinatura agora e atualiza a situação.</p>
                   <SubmitButton size="sm" variant="outline" pendingText="Consultando...">Conferir no Mercado Pago</SubmitButton>
                 </ActionForm>
-              </div>
+              </div>}
 
-              <div className="border-t border-slate-100 pt-5">
+              {canSuspend && <div>
                 {key === 'suspended' ? (
                   <ActionForm action={reactivateAssistance} className="space-y-2" confirm={`Reativar ${a.name}?`}>
                     <input type="hidden" name="assistance_id" value={a.id} />
@@ -204,9 +211,9 @@ export default async function AdminAssistancePage({ params }) {
                     <SubmitButton size="sm" variant="danger" pendingText="Suspendendo...">Suspender assistência</SubmitButton>
                   </ActionForm>
                 )}
-              </div>
+              </div>}
             </CardContent>
-          </Card>
+          </Card>}
 
           <Card>
             <CardHeader title="Dono e loja" />

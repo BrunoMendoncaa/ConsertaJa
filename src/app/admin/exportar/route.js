@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminSession } from '@/features/admin/session';
+import { can } from '@/features/admin/permissions';
 import { listAssistances, AdminSetupError } from '@/features/admin/queries';
 import {
   SITUATION_FILTERS, matchesSituation, matchesQuery, situation, dueInfo, monthlyValue, cycleLabel, profileComplete, toCsv,
@@ -14,7 +15,10 @@ const money = (n) => (n ? n.toFixed(2).replace('.', ',') : '');
 
 // Planilha das assistências (mesmos filtros da tela). Só com sessão admin válida.
 export async function GET(request) {
-  if (!(await getAdminSession())) return new NextResponse('Não autorizado', { status: 401 });
+  const session = await getAdminSession();
+  if (!session) return new NextResponse('Não autorizado', { status: 401 });
+  if (session.mustChangePassword || !can(session, 'assistencias_exportar')) return new NextResponse('Sem permissão', { status: 403 });
+  const showMoney = can(session, 'financeiro');
   const sp = new URL(request.url).searchParams;
   const filter = SITUATION_FILTERS.some(([k]) => k === sp.get('situacao')) ? sp.get('situacao') : 'todas';
   const q = (sp.get('q') || '').slice(0, 80);
@@ -27,8 +31,9 @@ export async function GET(request) {
     throw err;
   }
 
+  // Sem a permissão de valores, a coluna do valor mensal sai da planilha.
   const header = [
-    'Assistência', 'Portal', 'Situação', 'Vencimento', 'Dias', 'Plano', 'Valor mensal (R$)',
+    'Assistência', 'Portal', 'Situação', 'Vencimento', 'Dias', 'Plano', ...(showMoney ? ['Valor mensal (R$)'] : []),
     'Dono', 'E-mail do dono', 'Telefone do dono', 'WhatsApp da loja', 'Cidade', 'UF',
     'Cadastro completo', 'Criada em', 'OS 30 dias', 'OS total', 'Última OS', 'Último acesso do dono',
   ];
@@ -36,7 +41,7 @@ export async function GET(request) {
     const d = dueInfo(a);
     return [
       a.name, `${SITE_URL}/a/${a.slug}`, situation(a).label, d.date ? formatDate(d.date) : '', d.days ?? '',
-      cycleLabel(a.billing_cycle), money(monthlyValue(a)),
+      cycleLabel(a.billing_cycle), ...(showMoney ? [money(monthlyValue(a))] : []),
       a.owner_name || '', a.owner_email || '', a.owner_phone ? formatPhone(a.owner_phone) : '',
       a.whatsapp ? formatPhone(a.whatsapp) : a.phone ? formatPhone(a.phone) : '',
       a.address?.cidade || '', a.address?.uf || '',

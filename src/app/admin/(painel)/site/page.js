@@ -13,6 +13,7 @@ import { ColumnChart, BarList, Funnel, fmtNum } from '@/features/analytics/compo
 import { NoTrackToggle } from '@/features/analytics/components/no-track-toggle';
 import { formatDateTime } from '@/lib/dates';
 import { cn } from '@/lib/cn';
+import { requireAdmin } from '@/features/admin/session';
 
 export const metadata = { title: 'Site' };
 
@@ -22,6 +23,7 @@ const dayName = (ymd) => WEEKDAY[new Date(`${ymd}T12:00:00-03:00`).getUTCDay()];
 const plural = (n, one, many) => `${fmtNum(n)} ${n === 1 ? one : many}`;
 
 export default async function AdminSitePage({ searchParams }) {
+  await requireAdmin('site_ver');
   const sp = await searchParams;
   const range = periodRange(typeof sp?.periodo === 'string' ? sp.periodo : '7');
 

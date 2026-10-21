@@ -6,21 +6,16 @@ import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { syncAssistance } from '@/features/billing/sync';
 import { logError } from '@/lib/logger';
-import { adminConfig, requireAdmin, clientIp, ADMIN_COOKIE, ADMIN_COOKIE_OPTIONS } from './session';
+import { adminConfig, actionSession, clientIp, ADMIN_COOKIE, ADMIN_COOKIE_OPTIONS } from './session';
 import { signSession } from './token';
-import { verifyPassword, safeEqual } from './password';
+import { verifyPassword, safeEqual, dummyHash } from './password';
+import { USERNAME_RE } from './permissions';
+import { audit } from './audit';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SETUP_CODES = ['PGRST202', 'PGRST205', '42883', '42P01'];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const DAY = 86400000;
-
-async function audit(db, username, action, assistanceId, details = {}) {
-  const { error } = await db.from('admin_audit_log').insert({
-    admin_username: username, action, assistance_id: assistanceId, details, ip: await clientIp(),
-  });
-  if (error) logError('admin.audit', error, { action });
-}
 
 function idFrom(formData) {
   const id = String(formData.get('assistance_id') || '');
@@ -62,10 +57,22 @@ export async function adminSignIn(_prev, formData) {
     return { ok: false, error: 'Muitas tentativas. Aguarde 15 minutos e tente de novo.' };
   }
 
-  // Confere usuário e senha sempre (mesmo tempo de resposta para usuário errado ou senha errada).
-  const userOk = safeEqual(username, cfg.username);
-  const passOk = verifyPassword(password, cfg.hash);
-  const ok = userOk && passOk;
+  // A master (variáveis ADMIN_*) ou uma conta criada na tela Acessos (tabela admin_accounts).
+  // A senha é conferida sempre (mesmo tempo de resposta para usuário inexistente ou senha errada).
+  const isMaster = safeEqual(username, cfg.username);
+  let account = null;
+  if (!isMaster && USERNAME_RE.test(username)) {
+    const { data, error } = await db.from('admin_accounts')
+      .select('id, username, password_hash, active, must_change_password, session_version')
+      .eq('username', username).maybeSingle();
+    if (error && !SETUP_CODES.includes(error.code)) {
+      logError('admin.signIn.account', error);
+      return { ok: false, error: 'Não foi possível entrar agora. Tente de novo.' };
+    }
+    account = data;
+  }
+  const passOk = verifyPassword(password, isMaster ? cfg.hash : (account?.password_hash || dummyHash()));
+  const ok = passOk && (isMaster || Boolean(account?.active));
   await db.from('admin_login_attempts').insert({ username: username || null, ip, success: ok });
   if (!ok) {
     await sleep(400);
@@ -73,9 +80,15 @@ export async function adminSignIn(_prev, formData) {
   }
 
   const jar = await cookies();
-  jar.set(ADMIN_COOKIE, signSession(cfg), ADMIN_COOKIE_OPTIONS);
-  await audit(db, cfg.username, 'login', null);
-  redirect('/admin');
+  if (isMaster) {
+    jar.set(ADMIN_COOKIE, signSession(cfg), ADMIN_COOKIE_OPTIONS);
+    await audit(db, cfg.username, 'login', null);
+    redirect('/admin');
+  }
+  jar.set(ADMIN_COOKIE, signSession(cfg, Date.now(), account), ADMIN_COOKIE_OPTIONS);
+  await db.from('admin_accounts').update({ last_login_at: new Date().toISOString() }).eq('id', account.id);
+  await audit(db, account.username, 'login', null);
+  redirect(account.must_change_password ? '/admin/minha-senha' : '/admin');
 }
 
 export async function adminSignOut() {
@@ -86,7 +99,9 @@ export async function adminSignOut() {
 
 // ---------------------------------------------------------------- Ações em assistências
 export async function extendTrial(_prev, formData) {
-  const { username } = await requireAdmin();
+  const auth = await actionSession('assistencias_estender_teste');
+  if (auth.error) return { ok: false, error: auth.error };
+  const { username } = auth.session;
   const id = idFrom(formData);
   const days = Number(formData.get('days'));
   const note = String(formData.get('note') || '').trim().slice(0, 200);
@@ -107,7 +122,9 @@ export async function extendTrial(_prev, formData) {
 }
 
 export async function suspendAssistance(_prev, formData) {
-  const { username } = await requireAdmin();
+  const auth = await actionSession('assistencias_suspender');
+  if (auth.error) return { ok: false, error: auth.error };
+  const { username } = auth.session;
   const id = idFrom(formData);
   const reason = String(formData.get('reason') || '').trim().slice(0, 300);
   if (!id) return { ok: false, error: 'Assistência inválida.' };
@@ -126,7 +143,9 @@ export async function suspendAssistance(_prev, formData) {
 }
 
 export async function reactivateAssistance(_prev, formData) {
-  const { username } = await requireAdmin();
+  const auth = await actionSession('assistencias_suspender');
+  if (auth.error) return { ok: false, error: auth.error };
+  const { username } = auth.session;
   const id = idFrom(formData);
   if (!id) return { ok: false, error: 'Assistência inválida.' };
 
@@ -156,7 +175,9 @@ export async function reactivateAssistance(_prev, formData) {
 }
 
 export async function syncWithMercadoPago(_prev, formData) {
-  const { username } = await requireAdmin();
+  const auth = await actionSession('assistencias_mercado_pago');
+  if (auth.error) return { ok: false, error: auth.error };
+  const { username } = auth.session;
   const id = idFrom(formData);
   if (!id) return { ok: false, error: 'Assistência inválida.' };
 

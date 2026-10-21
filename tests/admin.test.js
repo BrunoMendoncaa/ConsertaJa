@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { hashPassword, newSessionSecret, passwordProblem } from '../scripts/admin-senha.mjs';
-import { verifyPassword, safeEqual } from '@/features/admin/password';
+import { verifyPassword, safeEqual, hashPassword as serverHash, passwordProblem as serverProblem, dummyHash } from '@/features/admin/password';
+import {
+  normalizePermissions, can, allowedSections, homeFor, PERMISSION_KEYS, USERNAME_RE,
+} from '@/features/admin/permissions';
 import { readAdminConfig, signSession, verifySession, SESSION_HOURS } from '@/features/admin/token';
 import {
   situationKey, dueInfo, monthlyValue, matchesSituation, matchesQuery, relativeDays, toCsv, profileComplete,
@@ -72,6 +75,85 @@ describe('área admin: sessão', () => {
     expect(verifySession({ ...cfg, hash: hashPassword('outra senha comprida') }, token)).toBeNull();
     expect(verifySession({ ...cfg, username: 'outro' }, token)).toBeNull();
     expect(verifySession(cfg, undefined)).toBeNull();
+  });
+});
+
+describe('área admin: sessão de contas com permissões', () => {
+  const cfg = readAdminConfig({
+    ADMIN_USERNAME: 'bruno.mendonca', ADMIN_PASSWORD_HASH: hashPassword('uma senha bem comprida'), ADMIN_SESSION_SECRET: newSessionSecret(),
+  });
+
+  it('cookie da master não leva versão; o de uma conta leva', () => {
+    expect(verifySession(cfg, signSession(cfg))).toMatchObject({ username: 'bruno.mendonca', master: true });
+    const acc = verifySession(cfg, signSession(cfg, Date.now(), { username: 'maria', session_version: 3 }));
+    expect(acc).toMatchObject({ username: 'maria', master: false, sv: 3 });
+  });
+
+  it('uma conta não vira master e a master não vale com versão', () => {
+    // Conta do banco com o mesmo nome da master: recusado.
+    expect(verifySession(cfg, signSession(cfg, Date.now(), { username: 'bruno.mendonca', session_version: 1 }))).toBeNull();
+    // Cookie de conta sem versão: recusado.
+    const payload = Buffer.from(JSON.stringify({ u: 'maria', exp: Date.now() + 1e6 })).toString('base64url');
+    const [, sig] = signSession(cfg).split('.');
+    expect(verifySession(cfg, `${payload}.${sig}`)).toBeNull();
+  });
+
+  it('cookie de conta assinado com outra chave não vale', () => {
+    const other = { ...cfg, secret: newSessionSecret() };
+    expect(verifySession(cfg, signSession(other, Date.now(), { username: 'maria', session_version: 1 }))).toBeNull();
+  });
+});
+
+describe('área admin: senhas das contas', () => {
+  it('o hash do servidor confere e usa o mesmo formato do comando', () => {
+    const h = serverHash('senha da maria 2026');
+    expect(h).toMatch(/^scrypt:32768:8:1:/);
+    expect(verifyPassword('senha da maria 2026', h)).toBe(true);
+    expect(verifyPassword('senha da maria 2027', h)).toBe(false);
+    expect(verifyPassword('qualquer coisa', dummyHash())).toBe(false);
+  });
+
+  it('mesmas regras de senha do comando', () => {
+    expect(serverProblem('curta')).toBeTruthy();
+    expect(serverProblem('x'.repeat(20))).toBeTruthy();
+    expect(serverProblem('a'.repeat(201))).toBeTruthy();
+    expect(serverProblem('troque-isto-2026')).toBeNull();
+  });
+
+  it('usuário válido', () => {
+    expect(USERNAME_RE.test('maria.souza')).toBe(true);
+    expect(USERNAME_RE.test('Maria')).toBe(false);
+    expect(USERNAME_RE.test('ma')).toBe(false);
+    expect(USERNAME_RE.test('maria souza')).toBe(false);
+  });
+});
+
+describe('área admin: permissões', () => {
+  it('só permissões conhecidas, sem repetir e com o "ver" que cada ação exige', () => {
+    expect(normalizePermissions(['assistencias_estender_teste', 'xpto', 'site_ver', 'site_ver'])).toEqual([
+      'assistencias_ver', 'assistencias_estender_teste', 'site_ver',
+    ]);
+    expect(normalizePermissions(null)).toEqual([]);
+    expect(normalizePermissions('usuarios_ver')).toEqual(['usuarios_ver']);
+  });
+
+  it('master pode tudo; conta só o marcado; sem sessão nada', () => {
+    const maria = { master: false, permissions: ['site_ver'] };
+    expect(can({ master: true, permissions: [] }, 'financeiro')).toBe(true);
+    expect(can(maria, 'site_ver')).toBe(true);
+    expect(can(maria, 'financeiro')).toBe(false);
+    expect(can(null, 'site_ver')).toBe(false);
+  });
+
+  it('menu e página inicial de cada conta', () => {
+    const master = { master: true, permissions: PERMISSION_KEYS };
+    expect(allowedSections(master).map((s) => s.href)).toEqual(['/admin', '/admin/assistencias', '/admin/usuarios', '/admin/site', '/admin/acessos']);
+    const maria = { master: false, permissions: ['site_ver', 'assistencias_ver'] };
+    expect(allowedSections(maria).map((s) => s.href)).toEqual(['/admin/assistencias', '/admin/site']);
+    expect(homeFor(maria)).toBe('/admin/assistencias');
+    expect(homeFor({ master: false, permissions: [] })).toBe('/admin/sem-acesso');
+    // Conta com todas as permissões continua sem a tela Acessos (é só da master).
+    expect(allowedSections({ master: false, permissions: PERMISSION_KEYS }).some((s) => s.href === '/admin/acessos')).toBe(false);
   });
 });
 

@@ -17,13 +17,25 @@ function key(cfg) {
   return crypto.createHash('sha256').update(`${cfg.secret}|${cfg.hash}`).digest();
 }
 
-export function signSession(cfg, now = Date.now()) {
-  const payload = Buffer.from(JSON.stringify({ u: cfg.username, exp: now + SESSION_HOURS * 3600 * 1000 })).toString('base64url');
+/**
+ * Cookie da sessão. Sem `account`: sessão da conta master (variáveis ADMIN_*).
+ * Com `account` ({ username, session_version }): sessão de uma conta do banco; a versão
+ * vai junto para a sessão cair quando a senha for trocada ou a conta desativada.
+ */
+export function signSession(cfg, now = Date.now(), account = null) {
+  const data = { u: account ? account.username : cfg.username, exp: now + SESSION_HOURS * 3600 * 1000 };
+  if (account) data.sv = account.session_version;
+  const payload = Buffer.from(JSON.stringify(data)).toString('base64url');
   const sig = crypto.createHmac('sha256', key(cfg)).update(payload).digest('base64url');
   return `${payload}.${sig}`;
 }
 
-/** Devolve { username, expiresAt } se o cookie for válido, senão null. */
+/**
+ * Confere assinatura e validade do cookie. Devolve
+ * { username, expiresAt, master: true } para a master ou
+ * { username, expiresAt, master: false, sv } para uma conta do banco (que ainda precisa
+ * ser conferida no banco: ativa e com a mesma versão de sessão). Senão, null.
+ */
 export function verifySession(cfg, token, now = Date.now()) {
   if (!cfg || typeof token !== 'string') return null;
   const [payload, sig, extra] = token.split('.');
@@ -37,6 +49,10 @@ export function verifySession(cfg, token, now = Date.now()) {
   } catch {
     return null;
   }
-  if (data?.u !== cfg.username || typeof data.exp !== 'number' || data.exp <= now) return null;
-  return { username: data.u, expiresAt: data.exp };
+  if (typeof data?.u !== 'string' || typeof data.exp !== 'number' || data.exp <= now) return null;
+  if (data.u === cfg.username && data.sv === undefined) return { username: data.u, expiresAt: data.exp, master: true };
+  if (data.u !== cfg.username && Number.isInteger(data.sv) && data.sv >= 1) {
+    return { username: data.u, expiresAt: data.exp, master: false, sv: data.sv };
+  }
+  return null;
 }

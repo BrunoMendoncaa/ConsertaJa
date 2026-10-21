@@ -25,7 +25,7 @@ export default async function AdminLoginPage() {
           <span className="rounded bg-slate-900 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Admin</span>
         </div>
         <h1 className="mt-6 text-xl font-semibold text-slate-900">Área administrativa</h1>
-        <p className="mt-1 text-sm text-slate-500">Acesso restrito ao responsável pelo TecnoFix.</p>
+        <p className="mt-1 text-sm text-slate-500">Acesso restrito à equipe do TecnoFix.</p>
 
         {configured ? (
           <ActionForm action={adminSignIn} className="mt-6 space-y-4">

@@ -55,6 +55,11 @@ export const ACTION_LABELS = {
   suspend: 'Suspendeu',
   reactivate: 'Reativou',
   sync_mp: 'Conferiu no Mercado Pago',
+  admin_create: 'Criou acesso admin',
+  admin_update: 'Alterou acesso admin',
+  admin_password_reset: 'Redefiniu a senha de um acesso',
+  admin_delete: 'Removeu acesso admin',
+  password_change: 'Trocou a própria senha',
 };
 
 export function actionDetail(row) {
@@ -62,5 +67,14 @@ export function actionDetail(row) {
   if (row.action === 'extend_trial') return `+${d.days} dia(s), até ${formatDate(d.to)}${d.note ? ` · ${d.note}` : ''}`;
   if (row.action === 'suspend') return d.reason || '';
   if (row.action === 'reactivate') return d.restored_status ? `voltou para ${STATUS_LABELS[d.restored_status] || d.restored_status}` : '';
+  if (row.action === 'admin_update') {
+    const parts = [d.target];
+    if (d.added?.length) parts.push(`+${d.added.length} permissão(ões)`);
+    if (d.removed?.length) parts.push(`-${d.removed.length} permissão(ões)`);
+    if (d.active === false) parts.push('desativado');
+    if (d.active === true) parts.push('reativado');
+    return parts.filter(Boolean).join(' · ');
+  }
+  if (['admin_create', 'admin_password_reset', 'admin_delete'].includes(row.action)) return d.target || '';
   return '';
 }

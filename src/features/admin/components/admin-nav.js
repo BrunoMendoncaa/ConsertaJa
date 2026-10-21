@@ -4,18 +4,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/cn';
 
-const ITEMS = [
-  { href: '/admin', label: 'Visão geral' },
-  { href: '/admin/assistencias', label: 'Assistências' },
-  { href: '/admin/usuarios', label: 'Usuários' },
-  { href: '/admin/site', label: 'Site' },
-];
-
-export function AdminNav() {
+/** Menu da área admin. As seções chegam do servidor já filtradas pelas permissões da conta. */
+export function AdminNav({ items }) {
   const pathname = usePathname();
+  if (!items?.length) return null;
   return (
     <nav className="flex flex-wrap gap-1" aria-label="Área admin">
-      {ITEMS.map((item) => {
+      {items.map((item) => {
         const active = item.href === '/admin' ? pathname === '/admin' : pathname.startsWith(item.href);
         return (
           <Link

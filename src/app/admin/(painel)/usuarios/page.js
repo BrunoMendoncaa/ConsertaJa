@@ -13,6 +13,7 @@ import { ROLES } from '@/lib/constants';
 import { formatDate, formatDateTime } from '@/lib/dates';
 import { formatPhone, whatsappLink } from '@/lib/phone';
 import { cn } from '@/lib/cn';
+import { requireAdmin } from '@/features/admin/session';
 
 export const metadata = { title: 'Usuários' };
 
@@ -25,6 +26,7 @@ const FILTERS = [
 const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 export default async function AdminUsersPage({ searchParams }) {
+  await requireAdmin('usuarios_ver');
   const sp = await searchParams;
   const filter = FILTERS.some(([k]) => k === sp?.filtro) ? sp.filtro : 'todos';
   const q = typeof sp?.q === 'string' ? sp.q.slice(0, 80) : '';

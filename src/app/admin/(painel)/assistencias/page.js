@@ -15,6 +15,8 @@ import { formatBRL } from '@/lib/money';
 import { formatDate } from '@/lib/dates';
 import { cn } from '@/lib/cn';
 import { Building2 } from 'lucide-react';
+import { requireAdmin } from '@/features/admin/session';
+import { can } from '@/features/admin/permissions';
 
 export const metadata = { title: 'Assistências' };
 
@@ -35,6 +37,9 @@ function sortRows(rows, sort) {
 }
 
 export default async function AdminAssistancesPage({ searchParams }) {
+  const session = await requireAdmin('assistencias_ver');
+  const money = can(session, 'financeiro');
+  const canExport = can(session, 'assistencias_exportar');
   const sp = await searchParams;
   const filter = SITUATION_FILTERS.some(([k]) => k === sp?.situacao) ? sp.situacao : 'todas';
   const q = typeof sp?.q === 'string' ? sp.q.slice(0, 80) : '';
@@ -60,7 +65,7 @@ export default async function AdminAssistancesPage({ searchParams }) {
       <PageHeader
         title="Assistências"
         description={`${rows.length} de ${all.length}`}
-        actions={<ButtonLink href={csvHref} variant="outline" prefetch={false}><Download className="size-4" aria-hidden="true" /> Baixar planilha (CSV)</ButtonLink>}
+        actions={canExport ? <ButtonLink href={csvHref} variant="outline" prefetch={false}><Download className="size-4" aria-hidden="true" /> Baixar planilha (CSV)</ButtonLink> : null}
       />
 
       <div className="mb-4 flex flex-wrap gap-2">
@@ -127,7 +132,7 @@ export default async function AdminAssistancesPage({ searchParams }) {
                       <TD><DueCell assistance={a} /></TD>
                       <TD>
                         <p className="text-slate-900">{cycleLabel(a.billing_cycle)}</p>
-                        {monthlyValue(a) > 0 && <p className="text-xs text-slate-500">{formatBRL(monthlyValue(a))}/mês</p>}
+                        {money && monthlyValue(a) > 0 && <p className="text-xs text-slate-500">{formatBRL(monthlyValue(a))}/mês</p>}
                       </TD>
                       <TD className="tabular text-right">
                         <span className="font-medium text-slate-900">{a.orders_30d}</span> <span className="text-slate-400">/ {a.orders}</span>

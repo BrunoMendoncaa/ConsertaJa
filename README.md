@@ -75,6 +75,7 @@ Quando chegar uma migration nova em `supabase/migrations/`, cole **só ela** no 
 | `20261009130000_nome_tecnofix.sql` | Novo nome do produto (TecnoFix) na mensagem de conta sem assinatura e endereço `/a/tecnofix` reservado. |
 | `20261009140000_billing_uma_assinatura.sql` | Uma assinatura vigente por assistência: assinar de novo depois de cancelar volta a valer, e assinaturas antigas não tomam o lugar da mais nova. |
 | `20261014120000_admin.sql` | Área admin: registro das ações do dono do TecnoFix, limite de tentativas de login e consultas de todas as assistências e usuários (só o servidor executa). |
+| `20261021120000_acessos_admin.sql` | Acessos da área admin: contas criadas pela master, com permissões por funcionalidade (só o servidor lê e grava). |
 
 ## Assinatura do TecnoFix (Mercado Pago)
 
@@ -267,12 +268,31 @@ Para configurar:
 
 **Para trocar a senha:** rode o comando de novo e substitua as 3 variáveis. As sessões abertas caem.
 
+### Acessos (conta master e permissões)
+
+A conta das variáveis `ADMIN_*` é a **master**: pode tudo e é a única que abre a tela **Acessos** (`/admin/acessos`). Ela não fica no banco, então não dá para se trancar para fora.
+
+Em Acessos, a master:
+- cria outros acessos (nome, usuário e senha inicial) e marca, numa caixa por funcionalidade, o que cada um pode ver e fazer;
+- altera as permissões (valem no próximo clique da pessoa), desativa, redefine a senha ou exclui.
+
+Funcionalidades que podem ser liberadas (lista em `src/features/admin/permissions.js`):
+- **Visão geral:** ver a visão geral; ver valores e pagamentos (receita, recebido no mês, valor dos planos, cobranças).
+- **Assistências:** ver assistências, donos e equipe; baixar a planilha; estender o teste; suspender e reativar; conferir no Mercado Pago. As ações exigem "ver assistências" (marcado sozinho).
+- **Usuários:** ver pessoas cadastradas.
+- **Site:** ver acessos do site.
+
+Quem recebe um acesso troca a senha no primeiro login (e depois de uma redefinição) e pode trocá-la em **Minha senha**. O menu mostra só o que a conta pode abrir; páginas, ações, a planilha e os valores em R$ também são conferidos no servidor. Desativar, excluir ou redefinir a senha derruba a sessão aberta na hora.
+
+Para ativar: rode a migration `20261021120000_acessos_admin.sql` no SQL Editor do Supabase e faça o deploy.
+
 **Segurança:**
 - Sem as 3 variáveis, a área fica desligada.
 - O login aceita até 5 erros por IP (ou 20 no total) a cada 15 minutos. As tentativas ficam em `admin_login_attempts`.
 - A sessão é um cookie assinado, `HttpOnly`, `SameSite=Strict` e restrito a `/admin`, válido por 12 horas.
 - Toda ação fica em `admin_audit_log`.
-- As consultas usam a chave secreta só no servidor. As funções `admin_*` e as tabelas não podem ser lidas pela equipe das assistências (teste pgTAP `07_admin`).
+- As consultas usam a chave secreta só no servidor. As funções `admin_*` e as tabelas não podem ser lidas pela equipe das assistências (testes pgTAP `07_admin` e `09_acessos_admin`).
+- Senhas dos acessos só como hash scrypt. Toda página da área admin confere login e permissão por conta própria (não depende só do layout).
 
 ## Acessos do site (tela "Site" na área admin)
 
