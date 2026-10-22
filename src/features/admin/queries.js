@@ -1,5 +1,6 @@
 import 'server-only';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { isTestUser } from './format';
 
 // Leituras da área admin. Sempre com a chave secreta (ignora o RLS), por isso só
 // são chamadas depois de requireAdmin(). As funções admin_* vêm da migration 0015.
@@ -15,25 +16,42 @@ function check(error, what) {
   throw new Error(`${what}: ${error.message}`);
 }
 
-export async function listAssistances() {
+async function allAssistances() {
   const { data, error } = await createAdminClient().rpc('admin_assistances');
   check(error, 'admin_assistances');
   return data || [];
 }
 
+/**
+ * Assistências de verdade (clientes). Contas de teste (is_test, migration 0019) ficam
+ * fora de todos os números, listas e da planilha: aparecem só em Acessos → Aplicação.
+ */
+export async function listAssistances() {
+  return (await allAssistances()).filter((a) => !a.is_test);
+}
+
+/** Contas de teste da aplicação (criadas na área admin ou marcadas como teste). */
+export async function listTestAssistances() {
+  return (await allAssistances()).filter((a) => a.is_test);
+}
+
 export async function listUsers() {
   const { data, error } = await createAdminClient().rpc('admin_users');
   check(error, 'admin_users');
-  return data || [];
+  return (data || []).filter((u) => !isTestUser(u));
 }
 
-/** Pagamentos aprovados desde uma data (para "recebido no mês"). */
+/** Pagamentos aprovados desde uma data (para "recebido no mês"), sem os de contas de teste. */
 export async function approvedPaymentsSince(isoDate) {
-  const { data, error } = await createAdminClient()
-    .from('billing_payments').select('amount, paid_at, assistance_id')
-    .eq('status', 'approved').gte('paid_at', isoDate);
+  const db = createAdminClient();
+  const [{ data, error }, tests] = await Promise.all([
+    db.from('billing_payments').select('amount, paid_at, assistance_id').eq('status', 'approved').gte('paid_at', isoDate),
+    db.from('assistances').select('id').eq('is_test', true),
+  ]);
   check(error, 'billing_payments');
-  return data || [];
+  // Sem a migration 0019 a coluna is_test não existe: nenhuma conta é de teste.
+  const testIds = new Set(tests.error ? [] : (tests.data || []).map((t) => t.id));
+  return (data || []).filter((p) => !testIds.has(p.assistance_id));
 }
 
 export class SiteSetupError extends Error {}
@@ -107,7 +125,7 @@ export async function getAdminAccount(id) {
 export async function getAssistanceDetail(id) {
   const db = createAdminClient();
   const [list, members, subs, payments, audit] = await Promise.all([
-    listAssistances(),
+    allAssistances(),
     db.rpc('admin_assistance_members', { p_assistance_id: id }),
     db.from('billing_subscriptions').select('id, provider_id, cycle, amount, payer_email, status, created_at, last_synced_at')
       .eq('assistance_id', id).order('created_at', { ascending: false }).limit(20),
@@ -122,5 +140,17 @@ export async function getAssistanceDetail(id) {
   check(audit.error, 'admin_audit_log');
   const assistance = list.find((a) => a.id === id);
   if (!assistance) return null;
-  return { assistance, members: members.data || [], subscriptions: subs.data || [], payments: payments.data || [], audit: audit.data || [] };
+  const team = members.data || [];
+  // Conta de teste: quais logins só existem nela (são apagados junto na exclusão).
+  let onlyHere = [];
+  if (assistance.is_test && team.length) {
+    const { data: rows, error } = await db.from('assistance_members').select('user_id').in('user_id', team.map((m) => m.user_id));
+    check(error, 'assistance_members');
+    const count = {};
+    for (const r of rows || []) count[r.user_id] = (count[r.user_id] || 0) + 1;
+    onlyHere = team.filter((m) => count[m.user_id] === 1).map((m) => m.user_id);
+  }
+  return {
+    assistance, members: team, onlyHere, subscriptions: subs.data || [], payments: payments.data || [], audit: audit.data || [],
+  };
 }

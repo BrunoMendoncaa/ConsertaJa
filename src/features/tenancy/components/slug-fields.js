@@ -3,12 +3,9 @@
 import { useState } from 'react';
 import { Input, Label } from '@/components/ui/input';
 import { FieldError } from '@/components/ui/action-form';
+import { slugify } from '@/lib/slug';
 
-export function slugify(text) {
-  return String(text)
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50);
-}
+export { slugify };
 
 export function SlugFields({ siteUrl }) {
   const [name, setName] = useState('');

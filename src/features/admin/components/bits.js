@@ -60,7 +60,15 @@ export const ACTION_LABELS = {
   admin_password_reset: 'Redefiniu a senha de um acesso',
   admin_delete: 'Removeu acesso admin',
   password_change: 'Trocou a própria senha',
+  test_create: 'Criou conta de teste',
+  test_plan: 'Trocou o plano da conta de teste',
+  test_mark: 'Marcou como conta de teste',
+  test_unmark: 'Voltou a contar como assistência',
+  test_password: 'Trocou a senha da conta de teste',
+  test_delete: 'Excluiu conta de teste',
 };
+
+const PLAN_NAMES = { pro: 'Pro', free: 'Grátis' };
 
 export function actionDetail(row) {
   const d = row.details || {};
@@ -76,5 +84,9 @@ export function actionDetail(row) {
     return parts.filter(Boolean).join(' · ');
   }
   if (['admin_create', 'admin_password_reset', 'admin_delete'].includes(row.action)) return d.target || '';
+  if (row.action === 'test_create') return [d.name, d.email, PLAN_NAMES[d.plan]].filter(Boolean).join(' · ');
+  if (row.action === 'test_plan') return `${PLAN_NAMES[d.from] || d.from || '—'} → ${PLAN_NAMES[d.to] || d.to}`;
+  if (row.action === 'test_mark') return PLAN_NAMES[d.plan] || '';
+  if (row.action === 'test_delete') return [d.name, d.logins?.length ? `logins: ${d.logins.join(', ')}` : ''].filter(Boolean).join(' · ');
   return '';
 }

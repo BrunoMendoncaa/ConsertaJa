@@ -1,4 +1,4 @@
-import { CircleCheck, ShieldCheck, Clock, TriangleAlert, Lock, CreditCard, Gauge, Minus } from 'lucide-react';
+import { CircleCheck, ShieldCheck, Clock, TriangleAlert, Lock, CreditCard, Gauge, Minus, FlaskConical } from 'lucide-react';
 import { requireStaff } from '@/lib/auth';
 import { MANAGER_ROLES } from '@/lib/constants';
 import { PageHeader } from '@/components/ui/page-header';
@@ -68,7 +68,16 @@ function StatusCard({ billing }) {
       text: 'Fale com o suporte do TecnoFix. Você vê e conclui o que já existe, mas não abre OS nova.',
     },
   };
-  const v = variants[access] || variants.trial;
+  // Conta de teste do TecnoFix: o plano é escolhido na área admin e não tem cobrança.
+  const test = billing.is_test && {
+    Icon: FlaskConical, tone: 'border-violet-200 bg-violet-50 text-violet-900',
+    title: `Conta de teste · plano ${billing.test_plan === 'free' ? 'Grátis' : 'Pro'}`,
+    text: billing.test_plan === 'free'
+      ? `Esta conta é de teste do TecnoFix e mostra o plano Grátis como o cliente vê (${usage ? `${usage.used} de ${usage.limit} OS neste mês` : `até ${FREE_OS_LIMIT} OS por mês`}). O plano é trocado na área admin; não tem assinatura nem cobrança.`
+      : 'Esta conta é de teste do TecnoFix, com o Pro liberado. O plano é trocado na área admin; não tem assinatura nem cobrança.',
+    meter: billing.test_plan === 'free' ? usage : null,
+  };
+  const v = test || variants[access] || variants.trial;
   return (
     <div className={`flex gap-4 rounded-xl border p-5 ${v.tone}`}>
       <v.Icon className="mt-0.5 size-6 shrink-0" aria-hidden="true" />
@@ -110,9 +119,9 @@ export default async function PlanPage({ searchParams }) {
 
   const isActive = billing.access === 'active' && billing.status !== 'canceled';
   // Não oferece assinar de novo enquanto já há período pago ou assinatura aguardando a 1ª cobrança.
-  const showSubscribe = billing.access === 'free' || billing.access === 'grace'
-    || (billing.access === 'trial' && !billing.has_subscription);
-  const pendingCheckout = subs?.[0]?.status === 'pending';
+  const showSubscribe = !billing.is_test && (billing.access === 'free' || billing.access === 'grace'
+    || (billing.access === 'trial' && !billing.has_subscription));
+  const pendingCheckout = !billing.is_test && subs?.[0]?.status === 'pending';
 
   return (
     <>

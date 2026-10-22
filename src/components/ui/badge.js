@@ -12,6 +12,7 @@ const tones = {
   teal: 'bg-teal-50 text-teal-700 ring-teal-200',
   green: 'bg-green-50 text-green-700 ring-green-200',
   zinc: 'bg-zinc-100 text-zinc-600 ring-zinc-200',
+  violet: 'bg-violet-50 text-violet-700 ring-violet-200',
 };
 
 export function Badge({ tone = 'slate', className, children }) {

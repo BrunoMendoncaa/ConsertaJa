@@ -77,6 +77,7 @@ Quando chegar uma migration nova em `supabase/migrations/`, cole **só ela** no 
 | `20261014120000_admin.sql` | Área admin: registro das ações do dono do TecnoFix, limite de tentativas de login e consultas de todas as assistências e usuários (só o servidor executa). |
 | `20261021120000_acessos_admin.sql` | Acessos da área admin: contas criadas pela master, com permissões por funcionalidade (só o servidor lê e grava). |
 | `20261022120000_plano_gratis.sql` | Plano Grátis sem prazo: depois dos 14 dias de Pro, a conta fica no Grátis (até 30 OS por mês, sem convidar equipe, comprovante de garantia simples) em vez de travar. |
+| `20261023120000_contas_teste.sql` | Contas de teste da aplicação: criadas pela área admin (ou assistência marcada como teste), ficam fora dos números, têm o plano escolhido na admin (Pro ou Grátis), não assinam e podem ser excluídas com tudo o que têm. |
 
 ## Assinatura do TecnoFix (Mercado Pago)
 
@@ -274,9 +275,15 @@ Para configurar:
 
 A conta das variáveis `ADMIN_*` é a **master**: pode tudo e é a única que abre a tela **Acessos** (`/admin/acessos`). Ela não fica no banco, então não dá para se trancar para fora.
 
-Em Acessos, a master:
-- cria outros acessos (nome, usuário e senha inicial) e marca, numa caixa por funcionalidade, o que cada um pode ver e fazer;
-- altera as permissões (valem no próximo clique da pessoa), desativa, redefine a senha ou exclui.
+Acessos tem duas abas:
+- **Painel admin:** a master cria outros acessos à área admin (nome, usuário e senha inicial) e marca, numa caixa por funcionalidade, o que cada um pode ver e fazer; altera as permissões (valem no próximo clique da pessoa), desativa, redefine a senha ou exclui.
+- **Aplicação (contas de teste):** a master cria uma conta de teste pronta para usar (nome da assistência, nome da pessoa, e-mail, senha e plano Pro ou Grátis). O login já nasce confirmado e com a assistência criada; entra em `/entrar`.
+
+**Contas de teste** (migration `20261023120000_contas_teste.sql`, pgTAP `11_contas_teste`):
+- não contam como assistência: ficam fora da visão geral, da lista de assistências, da planilha, dos usuários e dos números do Site;
+- o plano é o escolhido na admin (Pro: tudo liberado; Grátis: o sistema como o cliente do plano Grátis vê). Não têm teste grátis, cobrança nem botão de assinar (barrado também no servidor e no banco);
+- na tela da conta de teste, a master troca o plano, troca a senha do login, faz a conta voltar a contar como assistência ou **exclui para sempre** (digitando o nome). A exclusão apaga OS, orçamentos, clientes, caixa, fotos e logo (pela API do Storage) e os logins que só existiam nela;
+- uma assistência criada pelo cadastro normal pode ser **marcada como conta de teste** na tela dela (só a master, e só sem assinatura vigente no Mercado Pago). Só contas de teste podem ser excluídas.
 
 Funcionalidades que podem ser liberadas (lista em `src/features/admin/permissions.js`):
 - **Visão geral:** ver a visão geral; ver valores e pagamentos (receita, recebido no mês, valor dos planos, cobranças).
@@ -286,7 +293,7 @@ Funcionalidades que podem ser liberadas (lista em `src/features/admin/permission
 
 Quem recebe um acesso troca a senha no primeiro login (e depois de uma redefinição) e pode trocá-la em **Minha senha**. O menu mostra só o que a conta pode abrir; páginas, ações, a planilha e os valores em R$ também são conferidos no servidor. Desativar, excluir ou redefinir a senha derruba a sessão aberta na hora.
 
-Para ativar: rode a migration `20261021120000_acessos_admin.sql` no SQL Editor do Supabase e faça o deploy.
+Para ativar: rode as migrations `20261021120000_acessos_admin.sql` e `20261023120000_contas_teste.sql` no SQL Editor do Supabase e faça o deploy.
 
 **Segurança:**
 - Sem as 3 variáveis, a área fica desligada.

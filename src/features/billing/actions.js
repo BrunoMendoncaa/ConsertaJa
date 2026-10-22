@@ -29,6 +29,9 @@ export async function startCheckout(_prev, formData) {
 
   // Uma assinatura por assistência: não cria outra enquanto a atual está valendo.
   const { data: current } = await supabase.rpc('billing_status');
+  if (current?.is_test) {
+    return { ok: false, error: 'Esta é uma conta de teste do TecnoFix: o plano é definido na área admin e não tem cobrança.' };
+  }
   if (current?.has_subscription && ['trial', 'active'].includes(current.access)) {
     return { ok: false, error: 'Sua assistência já tem uma assinatura. A situação dela está em "Meu plano".' };
   }

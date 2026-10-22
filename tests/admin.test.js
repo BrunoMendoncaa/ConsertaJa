@@ -7,6 +7,7 @@ import {
 import { readAdminConfig, signSession, verifySession, SESSION_HOURS } from '@/features/admin/token';
 import {
   situation, situationKey, dueInfo, monthlyValue, matchesSituation, matchesQuery, relativeDays, toCsv, profileComplete,
+  isTestUser,
 } from '@/features/admin/format';
 
 const DAY = 86400000;
@@ -172,6 +173,24 @@ describe('área admin: situação e vencimento', () => {
     expect(situation({ ...base, access: 'free', trial_ends_at: iso(-3) }).label).toBe('Plano Grátis');
     expect(situationKey({ ...base, access: 'blocked', subscription_status: 'canceled' })).toBe('canceled');
     expect(situationKey({ ...base, access: 'blocked', subscription_status: 'suspended' })).toBe('suspended');
+  });
+
+  it('conta de teste (migration 0019): situação própria, sem vencimento e sem receita', () => {
+    const test = { ...base, is_test: true, test_plan: 'pro', access: 'active', subscription_status: 'trialing' };
+    expect(situationKey(test)).toBe('test');
+    expect(situation(test).label).toBe('Conta de teste');
+    expect(dueInfo(test)).toMatchObject({ date: null, label: 'Conta de teste' });
+    expect(monthlyValue({ ...test, billing_cycle: 'monthly', subscription_amount: 49 })).toBe(0);
+    expect(matchesSituation(test, 'active')).toBe(false);
+    // Suspensa continua aparecendo como suspensa
+    expect(situationKey({ ...test, subscription_status: 'suspended' })).toBe('suspended');
+  });
+
+  it('login só de contas de teste fica fora da lista de usuários', () => {
+    expect(isTestUser({ memberships: [{ is_test: true }] })).toBe(true);
+    expect(isTestUser({ memberships: [{ is_test: true }, { is_test: false }] })).toBe(false);
+    expect(isTestUser({ memberships: [] })).toBe(false); // sem assistência continua aparecendo
+    expect(isTestUser({ memberships: [{ name: 'Loja' }] })).toBe(false); // banco sem a 0019
   });
 
   it('filtro "Em teste" inclui quem já assinou', () => {

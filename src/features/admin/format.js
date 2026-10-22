@@ -15,6 +15,13 @@ export const SITUATIONS = {
   expired: { label: 'Plano Grátis', tone: 'orange' },
   canceled: { label: 'Grátis · cancelou o Pro', tone: 'zinc' },
   suspended: { label: 'Suspensa', tone: 'red' },
+  test: { label: 'Conta de teste', tone: 'violet' },
+};
+
+/** Plano da conta de teste (escolhido na área admin). */
+export const TEST_PLANS = {
+  pro: { label: 'Pro', hint: 'tudo liberado' },
+  free: { label: 'Grátis', hint: 'como o cliente do plano Grátis vê' },
 };
 
 export const SITUATION_FILTERS = [
@@ -29,6 +36,7 @@ export const SITUATION_FILTERS = [
 
 export function situationKey(a) {
   if (a.subscription_status === 'suspended') return 'suspended';
+  if (a.is_test) return 'test';
   if (a.access === 'active') return 'active';
   if (a.access === 'grace') return 'grace';
   if (a.access === 'trial') {
@@ -36,6 +44,12 @@ export function situationKey(a) {
       ? 'trial_subscribed' : 'trial';
   }
   return a.subscription_status === 'canceled' ? 'canceled' : 'expired';
+}
+
+/** Login que só participa de contas de teste (fica fora da lista de usuários e das contagens). */
+export function isTestUser(u) {
+  const m = u.memberships || [];
+  return m.length > 0 && m.every((x) => x.is_test);
 }
 
 export function situation(a) {
@@ -62,6 +76,7 @@ export function daysUntil(date, now = Date.now()) {
 export function dueInfo(a, now = Date.now()) {
   const key = situationKey(a);
   if (key === 'suspended') return { date: null, label: 'Suspensa', days: null };
+  if (key === 'test') return { date: null, label: 'Conta de teste', days: null };
   if (key === 'trial' || key === 'trial_subscribed') {
     return { date: a.trial_ends_at, label: key === 'trial' ? 'Teste até' : '1ª cobrança', days: daysUntil(a.trial_ends_at, now) };
   }

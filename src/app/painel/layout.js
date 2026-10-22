@@ -18,7 +18,9 @@ export default async function PainelLayout({ children }) {
   const trialLeft = trialDaysLeft(billing);
   const usage = freeUsage(billing);
   const planLabel = billing
-    ? billing.access === 'trial'
+    ? billing.is_test && billing.test_plan !== 'free'
+      ? 'Pro · conta de teste'
+      : billing.access === 'trial'
       ? `Pro grátis · ${trialLeft === 0 ? 'último dia' : `${trialLeft} ${trialLeft === 1 ? 'dia' : 'dias'}`}`
       : usage
         ? `Grátis · ${usage.used} de ${usage.limit} OS`
