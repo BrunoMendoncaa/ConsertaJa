@@ -1,9 +1,9 @@
 import './globals.css';
 import { SITE_URL } from '@/lib/supabase/env';
 
-const SHARE_TITLE = 'TecnoFix: sistema para assistência técnica | 14 dias grátis';
+const SHARE_TITLE = 'TecnoFix: sistema grátis para assistência técnica';
 const SHARE_DESCRIPTION =
-  'Ordem de serviço, orçamento aprovado pelo celular do cliente, garantia e caixa. Teste grátis por 14 dias, sem cartão de crédito.';
+  'Ordem de serviço, orçamento aprovado pelo celular do cliente, garantia e caixa. Grátis, sem prazo e sem cartão de crédito.';
 
 // O cartão que aparece ao compartilhar o link (WhatsApp, Facebook, LinkedIn) usa
 // openGraph + a imagem src/app/opengraph-image.jpg (1200x630), servida pelo próprio Next.

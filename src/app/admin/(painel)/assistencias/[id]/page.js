@@ -164,7 +164,7 @@ export default async function AdminAssistancePage({ params }) {
             <CardContent className="space-y-6 [&>*+*]:border-t [&>*+*]:border-slate-100 [&>*+*]:pt-5">
               {canExtend && <ActionForm action={extendTrial} className="space-y-3">
                 <input type="hidden" name="assistance_id" value={a.id} />
-                <p className="text-sm font-medium text-slate-900">Estender teste grátis</p>
+                <p className="text-sm font-medium text-slate-900">Estender o Pro grátis (teste)</p>
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Mais" name="days">
                     <Select id="days" name="days" defaultValue="7">
@@ -172,14 +172,14 @@ export default async function AdminAssistancePage({ params }) {
                     </Select>
                   </Field>
                   <div>
-                    <p className="mb-1.5 text-sm font-medium text-slate-700">Teste vai até</p>
+                    <p className="mb-1.5 text-sm font-medium text-slate-700">Pro grátis até</p>
                     <p className="flex h-10 items-center text-sm text-slate-600">{formatDate(a.trial_ends_at)}</p>
                   </div>
                 </div>
                 <Field label="Observação (opcional)" name="note">
                   <Input id="note" name="note" placeholder="Ex.: combinado por WhatsApp" maxLength={200} />
                 </Field>
-                <SubmitButton size="sm" pendingText="Salvando...">Estender teste</SubmitButton>
+                <SubmitButton size="sm" pendingText="Salvando...">Estender Pro grátis</SubmitButton>
                 {a.mp_preapproval_id && <p className="text-xs text-slate-500">A data da cobrança já agendada no Mercado Pago não muda.</p>}
               </ActionForm>}
 

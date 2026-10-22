@@ -15,7 +15,7 @@ export const PERMISSION_GROUPS = [
     items: [
       { key: 'assistencias_ver', label: 'Ver assistências, donos e equipe', hint: 'Lista, detalhes e contatos (telefone, e-mail, WhatsApp).' },
       { key: 'assistencias_exportar', label: 'Baixar a planilha (CSV)', requires: 'assistencias_ver' },
-      { key: 'assistencias_estender_teste', label: 'Estender o teste grátis', requires: 'assistencias_ver' },
+      { key: 'assistencias_estender_teste', label: 'Estender o Pro grátis (teste)', requires: 'assistencias_ver' },
       { key: 'assistencias_suspender', label: 'Suspender e reativar assistências', requires: 'assistencias_ver' },
       { key: 'assistencias_mercado_pago', label: 'Conferir a assinatura no Mercado Pago', requires: 'assistencias_ver' },
     ],

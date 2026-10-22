@@ -1,5 +1,5 @@
 import { ShieldCheck, PackageCheck } from 'lucide-react';
-import { warrantyTerms, LEGAL_WARRANTY_NOTE } from '@/features/service-orders/warranty';
+import { warrantyTerms, LEGAL_WARRANTY_NOTE, DEFAULT_WARRANTY_TERMS } from '@/features/service-orders/warranty';
 import { assistanceAddressLine, assistanceContactLine } from '@/features/tenancy/format';
 import { formatDate } from '@/lib/dates';
 import { formatPhone } from '@/lib/phone';
@@ -30,19 +30,24 @@ function SectionTitle({ children }) {
 /**
  * Certificado de garantia (ou termo de retirada, se o equipamento voltou sem reparo).
  * Documento A4 para imprimir ou salvar em PDF na retirada.
- * @param {{ doc: object, order: object, approved: object|null, assistance: object, logo: string|null }} props
+ * simple = plano Grátis: "comprovante de garantia" sem logo, sem a lista de peças e serviços
+ * e com as condições padrão (as condições próprias da assistência e o certificado completo são do Pro).
+ * @param {{ doc: object, order: object, approved: object|null, assistance: object, logo: string|null, simple?: boolean }} props
  */
-export function WarrantyCertificate({ doc, order, approved, assistance, logo }) {
+export function WarrantyCertificate({ doc, order, approved, assistance, logo, simple = false }) {
   const isCertificate = doc.kind === 'certificate';
   const isPickup = doc.kind === 'pickup';
-  const title = isPickup ? 'Termo de retirada' : 'Certificado de garantia';
+  const title = isPickup ? 'Termo de retirada' : simple ? 'Comprovante de garantia' : 'Certificado de garantia';
+  if (simple) logo = null;
   const items = approved?.snapshot?.items || [];
   const e = order.equipment || {};
   const c = order.customer || {};
   const addressLine = assistanceAddressLine(assistance.address);
   const contactLine = assistanceContactLine(assistance);
   const city = assistance.address?.cidade;
-  const terms = warrantyTerms(assistance.warranty_policy);
+  const terms = simple
+    ? DEFAULT_WARRANTY_TERMS.map((t) => t.replace(/certificado/g, 'comprovante'))
+    : warrantyTerms(assistance.warranty_policy);
   const accessories = order.accessories?.length ? order.accessories.join(', ') : 'nenhum';
 
   return (
@@ -72,7 +77,13 @@ export function WarrantyCertificate({ doc, order, approved, assistance, logo }) 
 
       {/* Destaque: prazo da garantia */}
       <section className="py-4">
-        {isCertificate && (
+        {isCertificate && simple && (
+          <div className="rounded-lg border border-slate-300 px-5 py-3">
+            <p className="text-lg font-bold text-slate-900">Garantia de {doc.days} dias</p>
+            <p className="text-sm text-slate-700">De {formatDate(doc.startsAt)} até {formatDate(doc.endsAt)}</p>
+          </div>
+        )}
+        {isCertificate && !simple && (
           <div className="flex items-center gap-4 rounded-xl border-2 border-emerald-600 bg-emerald-50 px-5 py-4 print:bg-white">
             <ShieldCheck className="size-10 shrink-0 text-emerald-700" aria-hidden="true" />
             <div>
@@ -123,7 +134,7 @@ export function WarrantyCertificate({ doc, order, approved, assistance, logo }) 
           {!isPickup && <Row label="Serviço realizado" className="sm:col-span-2">{order.solution}</Row>}
         </dl>
 
-        {!isPickup && items.length > 0 && (
+        {!isPickup && !simple && items.length > 0 && (
           <div>
             <SectionTitle>Serviços e peças (orçamento aprovado, versão {approved.version})</SectionTitle>
             <table className="w-full text-sm">
@@ -182,6 +193,7 @@ export function WarrantyCertificate({ doc, order, approved, assistance, logo }) 
           <div className="border-t border-slate-400 pt-2">{c.name || 'Cliente'}</div>
           <div className="border-t border-slate-400 pt-2">{assistance.name}</div>
         </footer>
+        {simple && <p className="pt-6 text-center text-[10px] text-slate-400">Documento gerado pelo TecnoFix · tecnofix.pro</p>}
       </div>
     </article>
   );

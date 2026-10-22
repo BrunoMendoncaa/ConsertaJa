@@ -81,10 +81,10 @@ export default async function AdminOverviewPage() {
         <h2 id="h-assist" className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Assistências</h2>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
           <StatCard label="Total" value={assistances.length} hint={`${created(7)} nos últimos 7 dias`} />
-          <StatCard label="Em teste" value={count('trial') + subscribedInTrial} hint={subscribedInTrial ? `${subscribedInTrial} já assinaram` : 'Ainda não assinaram'} />
-          <StatCard label="Pagantes" value={count('active')} tone="positive" hint="Assinatura em dia" />
+          <StatCard label="Pro grátis (teste)" value={count('trial') + subscribedInTrial} hint={subscribedInTrial ? `${subscribedInTrial} já assinaram` : 'Ainda não assinaram'} />
+          <StatCard label="Pro pagantes" value={count('active')} tone="positive" hint="Assinatura em dia" />
           <StatCard label="Pagamento pendente" value={count('grace')} tone={count('grace') ? 'warning' : 'default'} hint="Dentro da tolerância" />
-          <StatCard label="Teste encerrado" value={count('expired') + count('canceled')} hint={`${count('canceled')} cancelada(s)`} />
+          <StatCard label="Plano Grátis" value={count('expired') + count('canceled')} hint={`${count('canceled')} cancelaram o Pro`} />
           <StatCard label="Suspensas" value={count('suspended')} tone={count('suspended') ? 'negative' : 'default'} hint="Bloqueadas por você" />
         </div>
       </section>
@@ -101,7 +101,7 @@ export default async function AdminOverviewPage() {
 
       <div className="grid gap-6 xl:grid-cols-3">
         {seeAssistances && <Card className="h-fit xl:col-span-2">
-          <CardHeader title="Precisam de atenção" description="Teste acabando sem assinar, pagamento pendente e testes encerrados nos últimos 14 dias." />
+          <CardHeader title="Precisam de atenção" description="Pro grátis acabando sem assinar, pagamento pendente e quem foi para o Grátis nos últimos 14 dias." />
           {attention.length ? (
             <>
               <ul className="divide-y divide-slate-100 md:hidden">

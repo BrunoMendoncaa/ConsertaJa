@@ -1,44 +1,74 @@
 import Link from 'next/link';
 import {
-  ClipboardList, Camera, FileText, Smartphone, Wallet, ShieldCheck, ArrowRight, CircleCheck, QrCode,
-  BadgeCheck, CalendarClock, ListChecks, Printer, MessageCircle,
+  ClipboardList, Camera, FileText, Smartphone, Wallet, ShieldCheck, ArrowRight, CircleCheck,
+  BadgeCheck, CalendarClock, ListChecks, Printer, MessageCircle, Sparkles, Check,
 } from 'lucide-react';
 import { Logo } from '@/components/layout/logo';
 import { ButtonLink } from '@/components/ui/button';
-import { PLANS, PLAN_FEATURES, TRIAL_DAYS } from '@/lib/billing';
+import { PLANS, TRIAL_DAYS, FREE_OS_LIMIT } from '@/lib/billing';
 import { SiteTracker } from '@/features/analytics/components/site-tracker';
 import { MobileCtaBar } from '@/features/site/components/mobile-cta-bar';
 import { CampaignNote } from '@/features/site/components/campaign-note';
 import { whatsappLink } from '@/lib/contact';
 
-const features = [
-  { icon: ClipboardList, title: 'Ordem de serviço em 1 minuto', text: 'Cliente, equipamento, defeito, acessórios e condição de entrada num fluxo rápido de balcão. Número OS-2026-000123 gerado na hora.' },
-  { icon: Camera, title: 'Fotos como evidência', text: 'Fotografe frente, traseira, tela e danos pelo celular. As fotos ficam privadas e só a sua assistência acessa.' },
-  { icon: FileText, title: 'Orçamento profissional', text: 'Peças e serviços discriminados, desconto, prazo, garantia e condições. Cada envio vira uma versão que nunca é sobrescrita.' },
-  { icon: Smartphone, title: 'Aprovação pelo celular', text: 'O cliente acompanha a OS e aprova ou recusa o orçamento no link da sua assistência, sem instalar nada.' },
-  { icon: Wallet, title: 'Caixa sem complicação', text: 'Entradas, saídas, valores previstos e a receber, lucro estimado por OS e indicadores do período.' },
-  { icon: ShieldCheck, title: 'Seus dados isolados', text: 'Cada assistência é isolada no próprio banco de dados. Ninguém de fora enxerga seus clientes ou números.' },
-];
-
 const WHATSAPP = whatsappLink();
 const monthly = PLANS.monthly;
+const yearly = PLANS.yearly;
 
-const faq = [
-  ['Preciso instalar alguma coisa?', 'Não. O TecnoFix funciona no navegador do celular e do computador. Seu cliente também não instala nada: abre o link ou o QR code do comprovante.'],
-  ['Precisa de cartão para testar?', `Não. São ${TRIAL_DAYS} dias com tudo liberado, sem cartão de crédito. Você só paga se decidir assinar.`],
-  ['Quanto custa depois do teste?', `${monthly.priceLabel.replace('/mês', ' por mês')}, sem fidelidade, ou ${PLANS.yearly.priceLabel.replace('/ano', ' por ano')} (${PLANS.yearly.note}). Pagamento pelo Mercado Pago.`],
-  ['E se eu não assinar?', 'Nada é apagado. Você continua vendo e concluindo as ordens de serviço que já existem.'],
-  ['Serve para a minha assistência?', 'Serve para quem conserta celular, informática, eletrônicos ou eletrodomésticos: recebe o aparelho, faz o orçamento e entrega com garantia.'],
-  ['Minha equipe pode usar?', 'Pode. Você convida técnicos e atendentes e escolhe o que cada um pode ver e fazer.'],
+/** Celular com um print real do sistema. */
+function Phone({ src, alt, className = '', priority = false }) {
+  return (
+    <div className={`rounded-[2.2rem] bg-slate-900 p-2 shadow-2xl shadow-slate-900/25 ring-1 ring-slate-900/10 ${className}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt={alt} width={600} height={1297} loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : 'auto'}
+        className="block w-full rounded-[1.75rem]" />
+    </div>
+  );
+}
+
+const howItWorks = [
+  { n: 1, title: 'Abra a OS em 1 minuto', text: 'Cliente, aparelho, defeito, acessórios e fotos de como chegou. O link de acompanhamento sai pronto para o WhatsApp.', img: '/site/os-aberta.webp', alt: 'Ordem de serviço aberta no TecnoFix' },
+  { n: 2, title: 'O cliente aprova pelo celular', text: 'Ele abre o link, vê peças e serviços e toca em "Aprovar". Fica registrado com data e hora. Sem ligação, sem "não foi isso que eu falei".', img: '/site/cliente-aprova.webp', alt: 'Cliente aprovando o orçamento pelo celular' },
+  { n: 3, title: 'Entregue com garantia', text: 'Na retirada, a garantia sai pronta para imprimir ou mandar em PDF, com prazo e vencimento calculados.', img: '/site/garantia.webp', alt: 'Garantia de 90 dias no celular do cliente' },
 ];
 
-const steps = ['Receba', 'Registre', 'Fotografe', 'Diagnostique', 'Orce', 'Cliente aprova', 'Conserte', 'Receba o pagamento', 'Entregue com garantia'];
+const features = [
+  { icon: ClipboardList, title: 'Ordem de serviço em 1 minuto', text: 'Fluxo rápido de balcão, com número gerado na hora e comprovante com QR code.' },
+  { icon: Camera, title: 'Fotos como evidência', text: 'Frente, traseira, tela e danos fotografados pelo celular. Ficam privadas, só para a sua assistência.' },
+  { icon: FileText, title: 'Orçamento organizado', text: 'Peças e serviços separados, desconto, prazo e garantia. Cada envio vira uma versão que nunca se perde.' },
+  { icon: Smartphone, title: 'Cliente acompanha sozinho', text: 'Menos "já ficou pronto?" no WhatsApp: o cliente vê o andamento pelo link da sua assistência.' },
+  { icon: Wallet, title: 'Caixa sem complicação', text: 'Entradas, saídas, valores a receber e lucro estimado por OS.' },
+  { icon: ShieldCheck, title: 'Seus dados protegidos', text: 'Cada assistência é isolada no próprio espaço. Ninguém de fora enxerga seus clientes ou números.' },
+];
 
 const warrantyPoints = [
-  { icon: CalendarClock, title: 'Gerado na entrega', text: 'Ao registrar a retirada, o prazo começa a contar e o sistema calcula o vencimento sozinho.' },
-  { icon: ListChecks, title: 'Tudo documentado', text: 'Defeito, solução, peças e serviços do orçamento aprovado, número de série e IMEI do aparelho.' },
-  { icon: BadgeCheck, title: 'Suas condições', text: 'Você define o que a garantia cobre e quando ela perde a validade. O certificado sai com o seu logo.' },
-  { icon: Printer, title: 'Impresso ou no celular', text: 'Entregue impresso no balcão ou em PDF pelo WhatsApp. O cliente também abre pelo link da sua assistência enquanto a garantia valer.' },
+  { icon: CalendarClock, title: 'Gerada na entrega', text: 'Ao registrar a retirada, o prazo começa a contar e o vencimento é calculado sozinho.' },
+  { icon: ListChecks, title: 'Tudo documentado', text: 'Defeito, solução, número de série e IMEI do aparelho, com a assinatura do cliente.' },
+  { icon: BadgeCheck, title: 'Menos discussão no balcão', text: 'Quando o cliente volta, está tudo escrito: o que foi feito e o que a garantia cobre.' },
+  { icon: Printer, title: 'Impressa ou no celular', text: 'Entregue no papel ou em PDF pelo WhatsApp. O cliente também abre pelo link enquanto a garantia valer.' },
+];
+
+const freeItems = [
+  `Até ${FREE_OS_LIMIT} ordens de serviço por mês`,
+  'Orçamento aprovado pelo celular',
+  'Portal de acompanhamento para o cliente',
+  'Comprovante de garantia na entrega',
+  'Caixa e relatórios',
+];
+const proItems = [
+  'Ordens de serviço sem limite',
+  'Certificado de garantia com o seu logo, peças e serviços',
+  'Equipe com técnicos e atendentes, cada um com seu login',
+  'Portal do cliente só com a sua marca',
+];
+
+const faq = [
+  ['É grátis mesmo?', `É. O plano Grátis não tem prazo e não pede cartão: dá para usar todo mês, com até ${FREE_OS_LIMIT} ordens de serviço. Os ${TRIAL_DAYS} primeiros dias têm o Pro completo para você experimentar tudo; depois, a conta continua no Grátis sem perder nada.`],
+  ['E se eu precisar de mais OS no mês?', `É só assinar o Pro: ${monthly.priceLabel.replace('/mês', ' por mês')}, sem fidelidade, ou ${yearly.priceLabel.replace('/ano', ' por ano')} (${yearly.note}). As OS ficam sem limite na hora. Pagamento pelo Mercado Pago.`],
+  ['Preciso instalar alguma coisa?', 'Não. O TecnoFix funciona no navegador do celular e do computador. Seu cliente também não instala nada: abre o link ou o QR code do comprovante.'],
+  ['Serve para a minha assistência?', 'Serve para quem conserta celular, informática, eletrônicos ou eletrodomésticos: recebe o aparelho, faz o orçamento e entrega com garantia.'],
+  ['Minha equipe pode usar?', 'No Pro, sim: você convida técnicos e atendentes e escolhe o que cada um pode ver e fazer.'],
+  ['Se eu cancelar o Pro, perco alguma coisa?', 'Não. A conta volta para o plano Grátis e tudo o que você cadastrou continua lá.'],
 ];
 
 export default function LandingPage() {
@@ -53,186 +83,157 @@ export default function LandingPage() {
         </nav>
       </header>
 
-      <section className="mx-auto grid max-w-6xl items-center gap-12 px-6 pb-16 pt-4 sm:pb-20 sm:pt-10 lg:grid-cols-[1.15fr_1fr]">
-        <div>
-          <p className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700">
-            Sistema para assistência técnica
-          </p>
-          <h1 className="mt-4 text-[2rem] font-semibold leading-[1.15] tracking-tight text-slate-900 sm:mt-5 sm:text-5xl sm:leading-tight">
-            Chega de OS no caderno e orçamento perdido no WhatsApp.
-          </h1>
-          <p className="mt-4 text-base leading-relaxed text-slate-600 sm:mt-5 sm:text-lg">
-            No TecnoFix você abre a ordem de serviço em 1 minuto, manda o orçamento que o cliente aprova pelo celular e entrega o aparelho com certificado de garantia.
-          </p>
-          <div className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap">
-            <ButtonLink id="cta-principal" href="/cadastro" size="lg" className="w-full font-semibold sm:w-auto" data-track="hero-teste-gratis">
-              Testar grátis por {TRIAL_DAYS} dias <ArrowRight className="size-4" aria-hidden="true" />
-            </ButtonLink>
-            <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" data-track="hero-whatsapp"
-              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-emerald-600 bg-white px-6 text-base font-medium text-emerald-800 hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 sm:w-auto">
-              <MessageCircle className="size-5" aria-hidden="true" /> Tirar dúvida no WhatsApp
-            </a>
-          </div>
-          <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-slate-600">
-            {['Sem cartão de crédito', 'Cadastro em 2 minutos', `Depois, ${monthly.priceLabel} sem fidelidade`].map((t) => (
-              <li key={t} className="flex items-center gap-1.5"><CircleCheck className="size-4 shrink-0 text-emerald-600" aria-hidden="true" />{t}</li>
-            ))}
-          </ul>
-          <CampaignNote />
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
-          <div className="rounded-xl bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500">Orçamento</p>
-                <p className="text-lg font-semibold text-slate-900">OS-2026-000123</p>
-              </div>
-              <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-amber-200">Aguardando aprovação</span>
+      {/* ------------------------------------------------------------ Topo */}
+      <section className="relative overflow-hidden">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-40 -top-40 size-[36rem] rounded-full bg-brand-100/60 blur-3xl" />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 pb-16 pt-4 sm:pb-20 sm:pt-10 lg:grid-cols-[1.15fr_1fr]">
+          <div>
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200">
+              <Sparkles className="size-3.5" aria-hidden="true" /> Grátis para sempre · sem cartão
+            </p>
+            <h1 className="mt-4 text-[2rem] font-semibold leading-[1.15] tracking-tight text-slate-900 sm:mt-5 sm:text-5xl sm:leading-tight">
+              Chega de OS no caderno e orçamento perdido no WhatsApp.
+            </h1>
+            <p className="mt-4 text-base leading-relaxed text-slate-600 sm:mt-5 sm:text-lg">
+              O TecnoFix é o sistema grátis da sua assistência técnica: abra a OS em 1 minuto, mande o orçamento que o cliente aprova pelo celular e entregue com garantia.
+            </p>
+            <div className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap">
+              <ButtonLink id="cta-principal" href="/cadastro" size="lg" className="w-full font-semibold sm:w-auto" data-track="hero-teste-gratis">
+                Criar conta grátis <ArrowRight className="size-4" aria-hidden="true" />
+              </ButtonLink>
+              <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" data-track="hero-whatsapp"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-emerald-600 bg-white px-6 text-base font-medium text-emerald-800 hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 sm:w-auto">
+                <MessageCircle className="size-5" aria-hidden="true" /> Tirar dúvida no WhatsApp
+              </a>
             </div>
-            <p className="mt-3 text-sm text-slate-600">iPhone 13 · Tela quebrada</p>
-            <div className="mt-4 divide-y divide-slate-100 text-sm">
-              {[['Display original', 'R$ 450,00'], ['Mão de obra', 'R$ 150,00'], ['Limpeza interna', 'R$ 50,00']].map(([d, v]) => (
-                <div key={d} className="flex justify-between py-2"><span className="text-slate-600">{d}</span><span className="tabular text-slate-900">{v}</span></div>
+            <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-slate-600">
+              {['Grátis, sem prazo', 'Sem cartão de crédito', 'Pronto em 2 minutos'].map((t) => (
+                <li key={t} className="flex items-center gap-1.5"><CircleCheck className="size-4 shrink-0 text-emerald-600" aria-hidden="true" />{t}</li>
               ))}
-            </div>
-            <div className="mt-2 flex justify-between border-t border-slate-200 pt-3 text-base font-semibold">
-              <span>Total</span><span className="tabular">R$ 650,00</span>
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <span className="rounded-lg bg-emerald-600 py-2 text-center text-sm font-medium text-white">Aprovar</span>
-              <span className="rounded-lg border border-slate-300 py-2 text-center text-sm font-medium text-slate-700">Recusar</span>
+            </ul>
+            <CampaignNote />
+          </div>
+
+          <div className="relative mx-auto w-full max-w-[16rem] sm:max-w-xs lg:max-w-[20rem]">
+            <Phone src="/site/cliente-aprova.webp" alt="Tela do cliente aprovando o orçamento pelo celular" priority className="rotate-2" />
+            <div className="absolute -right-3 top-[56%] flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-900/20">
+              <Check className="size-4" aria-hidden="true" /> Orçamento aprovado
             </div>
           </div>
-          <p className="mt-3 flex items-center gap-2 text-xs text-slate-500">
-            <QrCode className="size-4" aria-hidden="true" /> O cliente abre pelo QR code do comprovante.
-          </p>
         </div>
       </section>
 
+      {/* ------------------------------------------------------------ Como funciona */}
       <section className="border-y border-slate-200 bg-slate-50">
         <div className="mx-auto max-w-6xl px-6 py-16">
-          <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Tudo o que a assistência precisa no dia a dia</h2>
-          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {features.map(({ icon: Icon, title, text }) => (
-              <div key={title} className="rounded-xl border border-slate-200 bg-white p-5">
-                <Icon className="size-5 text-brand-600" aria-hidden="true" />
-                <h3 className="mt-3 font-semibold text-slate-900">{title}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{text}</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-10 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-5">
-            <ButtonLink href="/cadastro" size="lg" className="w-full font-semibold sm:w-auto" data-track="meio-teste-gratis">
-              Testar grátis por {TRIAL_DAYS} dias <ArrowRight className="size-4" aria-hidden="true" />
-            </ButtonLink>
-            <p className="text-sm text-slate-600">Sem cartão. Tudo liberado desde o primeiro dia.</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-16 lg:grid-cols-2">
-        <div>
-          <p className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">
-            <ShieldCheck className="size-3.5" aria-hidden="true" /> Certificado de garantia
-          </p>
-          <h2 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900">Garantia que o cliente leva para casa</h2>
-          <p className="mt-3 text-lg leading-relaxed text-slate-600">
-            Na retirada, o TecnoFix gera o certificado com tudo o que foi feito no aparelho. Menos discussão no balcão quando o cliente volta, mais confiança para ele voltar.
-          </p>
-          <ul className="mt-8 grid gap-5 sm:grid-cols-2">
-            {warrantyPoints.map(({ icon: Icon, title, text }) => (
-              <li key={title}>
-                <Icon className="size-5 text-emerald-700" aria-hidden="true" />
-                <p className="mt-2 font-semibold text-slate-900">{title}</p>
-                <p className="mt-1 text-sm leading-relaxed text-slate-600">{text}</p>
+          <p className="text-sm font-semibold text-brand-700">Como funciona</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Do balcão à entrega, em 3 passos</h2>
+          <ol className="mt-10 grid gap-10 md:grid-cols-3">
+            {howItWorks.map((s) => (
+              <li key={s.n} className="flex flex-col">
+                <div className="flex items-start gap-3">
+                  <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">{s.n}</span>
+                  <div>
+                    <h3 className="font-semibold text-slate-900">{s.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-600">{s.text}</p>
+                  </div>
+                </div>
+                <Phone src={s.img} alt={s.alt} className="mx-auto mt-6 w-full max-w-[13rem] sm:max-w-[15rem]" />
               </li>
             ))}
-          </ul>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
-          <div className="rounded-xl bg-white p-5 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-slate-500">Certificado de garantia</p>
-                <p className="text-lg font-semibold text-slate-900">OS-2026-000123</p>
-              </div>
-              <p className="text-right text-xs text-slate-500">Retirada em<br /><span className="font-medium text-slate-700">08/10/2026</span></p>
-            </div>
-            <div className="mt-4 flex items-center gap-3 rounded-xl border-2 border-emerald-600 bg-emerald-50 px-4 py-3">
-              <ShieldCheck className="size-8 shrink-0 text-emerald-700" aria-hidden="true" />
-              <div>
-                <p className="text-lg font-bold text-slate-900">90 dias de garantia</p>
-                <p className="text-sm text-slate-700">Válida até <strong>06/01/2027</strong></p>
-              </div>
-            </div>
-            <p className="mt-4 text-sm text-slate-600">iPhone 13 · IMEI 3567••••••2345</p>
-            <div className="mt-2 divide-y divide-slate-100 text-sm">
-              {[['Peça', 'Display original'], ['Serviço', 'Mão de obra'], ['Serviço', 'Limpeza interna']].map(([k, d]) => (
-                <div key={d} className="flex justify-between gap-3 py-2"><span className="text-slate-900">{d}</span><span className="text-slate-500">{k}</span></div>
-              ))}
-            </div>
-            <div className="mt-6 grid grid-cols-2 gap-6 text-center text-[11px] text-slate-500">
-              <span className="border-t border-slate-300 pt-1.5">Cliente</span>
-              <span className="border-t border-slate-300 pt-1.5">Assistência</span>
-            </div>
+          </ol>
+          <div className="mt-12 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-5">
+            <ButtonLink href="/cadastro" size="lg" className="w-full font-semibold sm:w-auto" data-track="meio-teste-gratis">
+              Criar conta grátis <ArrowRight className="size-4" aria-hidden="true" />
+            </ButtonLink>
+            <p className="text-sm text-slate-600">Sem cartão. Os {TRIAL_DAYS} primeiros dias têm tudo liberado.</p>
           </div>
-          <p className="mt-3 flex items-center gap-2 text-xs text-slate-500">
-            <Smartphone className="size-4" aria-hidden="true" /> O cliente também abre o certificado pelo celular.
-          </p>
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 pb-16">
-        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">O fluxo completo, sem planilha</h2>
-        <ol className="mt-6 flex flex-wrap gap-2">
-          {steps.map((s, i) => (
-            <li key={s} className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm text-slate-700">
-              <span className="inline-flex size-5 items-center justify-center rounded-full bg-brand-600 text-xs font-semibold text-white">{i + 1}</span>
-              {s}
-            </li>
+      {/* ------------------------------------------------------------ Recursos */}
+      <section className="mx-auto max-w-6xl px-6 py-16">
+        <h2 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Tudo o que a assistência precisa no dia a dia</h2>
+        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {features.map(({ icon: Icon, title, text }) => (
+            <div key={title} className="rounded-xl border border-slate-200 bg-white p-5">
+              <span className="inline-flex size-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                <Icon className="size-5" aria-hidden="true" />
+              </span>
+              <h3 className="mt-3 font-semibold text-slate-900">{title}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{text}</p>
+            </div>
           ))}
-        </ol>
-      </section>
-
-      <section id="precos" className="border-y border-slate-200 bg-slate-50">
-        <div className="mx-auto max-w-6xl px-6 py-16">
-          <div className="max-w-2xl">
-            <h2 className="text-3xl font-semibold tracking-tight text-slate-900">Preço simples, sem surpresa</h2>
-            <p className="mt-3 text-lg text-slate-600">Teste tudo por {TRIAL_DAYS} dias, sem cartão. Gostou? Assine um plano único, com tudo liberado.</p>
-          </div>
-          <div className="mt-8 grid gap-5 md:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6">
-              <p className="text-sm font-medium text-slate-600">Teste grátis</p>
-              <p className="mt-1 text-3xl font-bold text-slate-900">{TRIAL_DAYS} dias</p>
-              <p className="mt-2 text-sm text-slate-600">Sem cartão de crédito e sem compromisso. Tudo liberado desde o primeiro dia.</p>
-            </div>
-            {Object.values(PLANS).map((p) => (
-              <div key={p.cycle} className={`rounded-2xl border bg-white p-6 ${p.cycle === 'yearly' ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-slate-200'}`}>
-                <p className="flex items-center justify-between gap-2 text-sm font-medium text-slate-600">
-                  {p.label}
-                  {p.note && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800">{p.note}</span>}
-                </p>
-                <p className="mt-1 text-3xl font-bold text-slate-900">R$ {p.amount}<span className="text-base font-medium text-slate-500">/{p.cycle === 'yearly' ? 'ano' : 'mês'}</span></p>
-                <p className="mt-2 text-sm text-slate-600">{p.cycle === 'yearly' ? 'Equivale a R$ 40,83 por mês.' : 'Sem fidelidade. Cancele quando quiser.'}</p>
-              </div>
-            ))}
-          </div>
-          <ul className="mt-6 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
-            {PLAN_FEATURES.map((f) => (
-              <li key={f} className="flex items-center gap-2"><CircleCheck className="size-4 shrink-0 text-emerald-600" aria-hidden="true" />{f}</li>
-            ))}
-          </ul>
-          <p className="mt-4 text-xs text-slate-500">Pagamento pelo Mercado Pago. Se o teste acabar sem assinatura, nada é apagado: você continua vendo e concluindo o que já existe.</p>
         </div>
       </section>
 
-      <section className="mx-auto max-w-3xl px-6 pt-16">
+      {/* ------------------------------------------------------------ Garantia */}
+      <section className="bg-slate-900 text-white">
+        <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-16 lg:grid-cols-[1.2fr_1fr]">
+          <div>
+            <p className="inline-flex items-center gap-2 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-medium text-emerald-300">
+              <ShieldCheck className="size-3.5" aria-hidden="true" /> Garantia na entrega
+            </p>
+            <h2 className="mt-4 text-3xl font-semibold tracking-tight">Garantia que o cliente leva para casa</h2>
+            <p className="mt-3 text-lg leading-relaxed text-slate-300">
+              Na retirada, o TecnoFix gera a garantia com tudo o que foi feito no aparelho. Menos discussão quando o cliente volta, mais confiança para ele voltar.
+            </p>
+            <ul className="mt-8 grid gap-5 sm:grid-cols-2">
+              {warrantyPoints.map(({ icon: Icon, title, text }) => (
+                <li key={title}>
+                  <Icon className="size-5 text-emerald-400" aria-hidden="true" />
+                  <p className="mt-2 font-semibold">{title}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-slate-400">{text}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <Phone src="/site/garantia.webp" alt="Garantia de 90 dias aberta no celular do cliente" className="mx-auto w-full max-w-[16rem] -rotate-2 ring-white/10" />
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------ Planos (discreto) */}
+      <section id="precos" className="mx-auto max-w-5xl px-6 py-16">
+        <div className="max-w-2xl">
+          <h2 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Comece grátis. Cresça com o Pro.</h2>
+          <p className="mt-3 text-slate-600">Toda conta nova começa com {TRIAL_DAYS} dias de Pro, sem cartão. Depois, você escolhe: continua no Grátis ou assina o Pro.</p>
+        </div>
+        <div className="mt-8 grid gap-5 md:grid-cols-2">
+          <div className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6">
+            <p className="text-sm font-semibold text-slate-600">Grátis</p>
+            <p className="mt-1 text-3xl font-bold text-slate-900">R$ 0<span className="text-base font-medium text-slate-500"> para sempre</span></p>
+            <ul className="mt-5 flex-1 space-y-2 text-sm text-slate-700">
+              {freeItems.map((f) => (
+                <li key={f} className="flex gap-2"><CircleCheck className="mt-0.5 size-4 shrink-0 text-emerald-600" aria-hidden="true" />{f}</li>
+              ))}
+            </ul>
+            <ButtonLink href="/cadastro" variant="outline" className="mt-6 w-full" data-track="precos-gratis">Criar conta grátis</ButtonLink>
+          </div>
+          <div className="flex flex-col rounded-2xl border-2 border-brand-600 bg-white p-6 shadow-lg shadow-brand-900/5">
+            <p className="flex items-center justify-between gap-2 text-sm font-semibold text-brand-700">
+              Pro
+              <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">{TRIAL_DAYS} dias grátis na conta nova</span>
+            </p>
+            <p className="mt-1 text-3xl font-bold text-slate-900">R$ {monthly.amount}<span className="text-base font-medium text-slate-500">/mês</span></p>
+            <p className="text-xs text-slate-500">ou R$ {yearly.amount}/ano ({yearly.note})</p>
+            <ul className="mt-5 flex-1 space-y-2 text-sm text-slate-700">
+              <li className="flex gap-2 font-medium text-slate-900"><CircleCheck className="mt-0.5 size-4 shrink-0 text-brand-600" aria-hidden="true" />Tudo do Grátis, e mais:</li>
+              {proItems.map((f) => (
+                <li key={f} className="flex gap-2"><CircleCheck className="mt-0.5 size-4 shrink-0 text-brand-600" aria-hidden="true" />{f}</li>
+              ))}
+            </ul>
+            <ButtonLink href="/cadastro" className="mt-6 w-full" data-track="precos-pro">Começar com {TRIAL_DAYS} dias de Pro</ButtonLink>
+          </div>
+        </div>
+        <p className="mt-4 text-xs text-slate-500">Pro sem fidelidade, pago pelo Mercado Pago. Se cancelar, a conta volta para o Grátis e nada é apagado.</p>
+      </section>
+
+      {/* ------------------------------------------------------------ Perguntas */}
+      <section className="mx-auto max-w-3xl px-6 pb-4">
         <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Perguntas frequentes</h2>
         <div className="mt-6 divide-y divide-slate-200 rounded-2xl border border-slate-200">
-          {faq.map(([q, a]) => (
-            <details key={q} className="group px-5 py-4">
+          {faq.map(([q, a], i) => (
+            <details key={q} className="group px-5 py-4" open={i === 0}>
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium text-slate-900 [&::-webkit-details-marker]:hidden">
                 {q}
                 <span aria-hidden="true" className="text-xl leading-none text-slate-400 transition-transform group-open:rotate-45">+</span>
@@ -250,16 +251,17 @@ export default function LandingPage() {
         </p>
       </section>
 
+      {/* ------------------------------------------------------------ Final */}
       <section className="mx-auto max-w-6xl px-6 py-16">
-        <div className="rounded-2xl bg-slate-900 px-8 py-10 text-white">
-          <h2 className="text-2xl font-semibold">Comece hoje com a sua assistência</h2>
-          <ul className="mt-4 space-y-2 text-sm text-slate-300">
-            {[`${TRIAL_DAYS} dias grátis, sem cartão`, 'Cadastro em 2 minutos', 'Link próprio para seus clientes', 'Certificado de garantia na entrega'].map((t) => (
-              <li key={t} className="flex items-center gap-2"><CircleCheck className="size-4 text-emerald-400" aria-hidden="true" />{t}</li>
+        <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 px-8 py-10 text-white sm:px-12">
+          <h2 className="text-2xl font-semibold sm:text-3xl">Organize sua assistência hoje, de graça</h2>
+          <ul className="mt-4 grid gap-2 text-sm text-brand-50 sm:grid-cols-2">
+            {['Grátis, sem prazo e sem cartão', `${TRIAL_DAYS} dias de Pro para experimentar tudo`, 'Link próprio para seus clientes acompanharem', 'Garantia pronta na entrega'].map((t) => (
+              <li key={t} className="flex items-center gap-2"><CircleCheck className="size-4 shrink-0 text-emerald-300" aria-hidden="true" />{t}</li>
             ))}
           </ul>
-          <Link href="/cadastro" data-track="rodape-teste-gratis" className="mt-6 inline-flex h-11 items-center gap-2 rounded-lg bg-white px-5 text-sm font-semibold text-slate-900 hover:bg-slate-100">
-            Começar o teste grátis <ArrowRight className="size-4" aria-hidden="true" />
+          <Link href="/cadastro" data-track="rodape-teste-gratis" className="mt-7 inline-flex h-12 items-center gap-2 rounded-lg bg-white px-6 text-base font-semibold text-brand-800 hover:bg-brand-50">
+            Criar conta grátis <ArrowRight className="size-4" aria-hidden="true" />
           </Link>
         </div>
       </section>
@@ -268,7 +270,7 @@ export default function LandingPage() {
         © 2026 BSM Technology · TecnoFix
       </footer>
 
-      <MobileCtaBar watchId="cta-principal" days={TRIAL_DAYS} whatsappHref={WHATSAPP} />
+      <MobileCtaBar watchId="cta-principal" whatsappHref={WHATSAPP} />
     </div>
   );
 }

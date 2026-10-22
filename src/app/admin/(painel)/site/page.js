@@ -137,8 +137,8 @@ export default async function AdminSitePage({ searchParams }) {
           <CardContent>
             <BarList items={r.origins.map((o) => ({ label: o.label, value: o.value, extra: o.signup }))} extraLabel="no cadastro" />
             <p className="mt-4 text-xs text-slate-500">
-              Links de campanha: tecnofix.pro/14dias (mensagem do WhatsApp), tecnofix.pro/anuncio (anúncio pago)
-              e tecnofix.pro/grupos (posts em grupos). Cada um aparece aqui com o próprio nome.
+              Links de campanha: tecnofix.pro/gratis (mensagem nova do WhatsApp), tecnofix.pro/14dias (mensagem antiga),
+              tecnofix.pro/anuncio (anúncio pago) e tecnofix.pro/grupos (posts em grupos). Cada um aparece aqui com o próprio nome.
             </p>
           </CardContent>
         </Card>

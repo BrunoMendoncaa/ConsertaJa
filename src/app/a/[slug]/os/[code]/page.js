@@ -4,7 +4,7 @@ import { ChevronLeft, FileText, ShieldCheck, ChevronRight } from 'lucide-react';
 import { StatusBadge, BudgetStatusBadge } from '@/components/ui/badge';
 import { OrderProgress } from '@/features/portal/components/progress';
 import { Timeline } from '@/features/service-orders/components/timeline';
-import { portalCall, signPortalPhotos } from '@/features/portal/queries';
+import { portalCall, signPortalPhotos, getPortalAssistance } from '@/features/portal/queries';
 import { formatDate, todayISO } from '@/lib/dates';
 import { formatBRL } from '@/lib/money';
 import { OUTCOMES, PHOTO_KINDS } from '@/lib/constants';
@@ -21,6 +21,7 @@ export default async function PortalOrderPage({ params }) {
   const eq = o.equipment || {};
   const delivered = o.status === 'ENTREGUE';
   const repaired = o.outcome === 'REPARADO';
+  const simpleWarranty = (await getPortalAssistance(slug))?.plan === 'free';
   const warrantyActive = Boolean(o.warranty_until) && o.warranty_until >= todayISO();
 
   return (
@@ -49,7 +50,7 @@ export default async function PortalOrderPage({ params }) {
           <div className="flex items-start gap-3">
             <ShieldCheck className={`mt-0.5 size-6 shrink-0 ${repaired && warrantyActive ? 'text-emerald-700' : 'text-slate-400'}`} aria-hidden="true" />
             <div>
-              <p className="font-semibold text-slate-900">{repaired ? 'Certificado de garantia' : 'Termo de retirada'}</p>
+              <p className="font-semibold text-slate-900">{repaired ? (simpleWarranty ? 'Comprovante de garantia' : 'Certificado de garantia') : 'Termo de retirada'}</p>
               <p className="text-sm text-slate-600">
                 {!repaired && 'Comprovante da retirada do equipamento.'}
                 {repaired && o.warranty_until && (warrantyActive ? `Garantia em vigor até ${formatDate(o.warranty_until)}.` : `Garantia encerrada em ${formatDate(o.warranty_until)}.`)}

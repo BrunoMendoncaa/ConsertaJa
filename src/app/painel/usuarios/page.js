@@ -9,6 +9,8 @@ import { createInvitation, revokeInvitation, updateMember } from '@/features/ten
 import { ROLES, MANAGER_ROLES } from '@/lib/constants';
 import { formatDate } from '@/lib/dates';
 import { InvitationResult } from './invitation-result';
+import { getBillingStatus } from '@/features/billing/queries';
+import { ButtonLink } from '@/components/ui/button';
 
 export const metadata = { title: 'Equipe' };
 
@@ -21,6 +23,8 @@ const ROLE_HELP = {
 
 export default async function TeamPage() {
   const { supabase, role, user } = await requireStaff(MANAGER_ROLES);
+  const billing = await getBillingStatus();
+  const freePlan = billing?.plan === 'free';
   const [{ data: members }, { data: invites }] = await Promise.all([
     supabase.rpc('team_members'),
     supabase.from('assistance_invitations').select('id, email, role, created_at, expires_at')
@@ -99,6 +103,12 @@ export default async function TeamPage() {
         <Card className="h-fit">
           <CardHeader title="Convidar pessoa" description="Gere um link e envie por WhatsApp ou e-mail." />
           <CardContent>
+            {freePlan ? (
+              <div className="space-y-3 text-sm text-slate-600">
+                <p>Convidar técnicos e atendentes é do plano <strong>Pro</strong>. No Pro, cada pessoa tem o próprio login e você escolhe o que ela pode ver e fazer.</p>
+                <ButtonLink href="/painel/plano" size="sm">Conhecer o Pro</ButtonLink>
+              </div>
+            ) : (
             <ActionForm action={createInvitation} resetOnSuccess className="space-y-4">
               <Field label="E-mail da pessoa" name="email" required>
                 <Input id="email" name="email" type="email" />
@@ -111,6 +121,7 @@ export default async function TeamPage() {
               <SubmitButton className="w-full" pendingText="Gerando...">Gerar convite</SubmitButton>
               <InvitationResult />
             </ActionForm>
+            )}
           </CardContent>
         </Card>
       </div>

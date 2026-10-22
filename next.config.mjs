@@ -31,7 +31,7 @@ const nextConfig = {
   // (ver src/features/analytics/constants.js). Ex.: https://tecnofix.pro/14dias
   async rewrites() {
     // /grupos é uma página própria (src/app/(site)/grupos), com o cartão de link dos posts em grupos.
-    return ['/14dias', '/anuncio'].map((source) => ({ source, destination: '/' }));
+    return ['/14dias', '/gratis', '/anuncio'].map((source) => ({ source, destination: '/' }));
   },
   async redirects() {
     const host = publicHost();

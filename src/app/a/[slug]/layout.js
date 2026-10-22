@@ -53,7 +53,12 @@ export default async function PortalLayout({ children, params }) {
           {a.phone && <a href={`tel:${a.phone.replace(/\D/g, '')}`} className="flex items-center gap-2 hover:underline"><Phone className="size-4" aria-hidden="true" /> {a.phone}</a>}
           {addressLine && <p className="flex items-start gap-2"><MapPin className="mt-0.5 size-4 shrink-0" aria-hidden="true" /> {addressLine}</p>}
           {a.business_hours && <p className="flex items-start gap-2"><Clock className="mt-0.5 size-4 shrink-0" aria-hidden="true" /> {a.business_hours}</p>}
-          <p className="pt-3 text-xs text-slate-400">Sistema TecnoFix</p>
+          {a.plan === 'free' && (
+            <a href="https://tecnofix.pro/?utm_source=portal&utm_medium=rodape&utm_campaign=feito-com-tecnofix" target="_blank" rel="noopener"
+              className="block pt-3 text-xs text-slate-400 hover:text-slate-600">
+              Feito com TecnoFix · sistema grátis para assistência técnica
+            </a>
+          )}
         </div>
       </footer>
     </div>

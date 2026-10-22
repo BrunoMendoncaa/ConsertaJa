@@ -6,10 +6,10 @@ import { ArrowRight, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
 /**
- * Barra fixa no rodapé do celular com o botão de teste grátis.
+ * Barra fixa no rodapé do celular com o botão de criar conta grátis.
  * Aparece depois que o botão principal sai da tela (rolando para baixo) e some quando ele volta.
  */
-export function MobileCtaBar({ watchId, days, whatsappHref }) {
+export function MobileCtaBar({ watchId, whatsappHref }) {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export function MobileCtaBar({ watchId, days, whatsappHref }) {
           data-track="barra-teste-gratis"
           className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 text-base font-semibold text-white shadow-sm hover:bg-brand-700"
         >
-          Testar grátis {days} dias <ArrowRight className="size-4" aria-hidden="true" />
+          Criar conta grátis <ArrowRight className="size-4" aria-hidden="true" />
         </Link>
         <a
           href={whatsappHref}

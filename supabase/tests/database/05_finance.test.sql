@@ -95,15 +95,15 @@ set local role authenticated;
 select lives_ok($$insert into public.cash_transactions (direction, category, amount, payment_method, description, service_order_id, quantity)
   values ('OUT', 'COMPRA_PECA', 120, 'PIX', 'Peça', 'a5000000-0000-4000-8000-000000000001', 1)$$, 'técnico registra compra de peça');
 select results_eq($$select count(*)::int from public.cash_transactions$$, array[1], 'técnico vê só o que lançou');
-select results_eq($$select (public.dashboard_summary(current_date, current_date) ->> 'can_see_finance')::boolean$$, array[false],
+select results_eq($$select (public.dashboard_summary((now() at time zone 'America/Sao_Paulo')::date, (now() at time zone 'America/Sao_Paulo')::date) ->> 'can_see_finance')::boolean$$, array[false],
   'técnico não vê o financeiro no dashboard');
-select results_eq($$select public.dashboard_summary(current_date, current_date) -> 'finance'$$, array['null'::jsonb],
+select results_eq($$select public.dashboard_summary((now() at time zone 'America/Sao_Paulo')::date, (now() at time zone 'America/Sao_Paulo')::date) -> 'finance'$$, array['null'::jsonb],
   'bloco financeiro vem vazio para o técnico');
 select results_eq($$select (public.service_order_balance('a5000000-0000-4000-8000-000000000001') ->> 'balance_due')::numeric$$,
   array[300::numeric], 'saldo a receber da OS (500 aprovados − 200 recebidos)');
 select throws_ok($$select public.void_cash_transaction((select id from public.cash_transactions limit 1), 'Erro')$$,
   '42501', null, 'técnico não anula lançamento');
-select throws_ok($$select public.report_summary(current_date, current_date)$$, '42501', null, 'técnico não abre relatórios');
+select throws_ok($$select public.report_summary((now() at time zone 'America/Sao_Paulo')::date, (now() at time zone 'America/Sao_Paulo')::date)$$, '42501', null, 'técnico não abre relatórios');
 
 reset role;
 select set_config('request.jwt.claims', '{"sub":"a0000000-0000-4000-8000-000000000a01","role":"authenticated"}', true);
@@ -113,7 +113,7 @@ insert into public.cash_transactions (direction, category, amount, payment_metho
 values ('OUT', 'DESPESA_OPERACIONAL', 80, 'BOLETO', 'Internet');
 select results_eq($$select count(*)::int from public.cash_transactions$$, array[3], 'dono vê todos os lançamentos');
 
-create temp table _d on commit drop as select public.dashboard_summary(current_date, current_date) as d;
+create temp table _d on commit drop as select public.dashboard_summary((now() at time zone 'America/Sao_Paulo')::date, (now() at time zone 'America/Sao_Paulo')::date) as d;
 select results_eq($$select (d -> 'finance' ->> 'inflow')::numeric, (d -> 'finance' ->> 'outflow')::numeric, (d -> 'finance' ->> 'balance')::numeric from _d$$,
   $$values (200::numeric, 200::numeric, 0::numeric)$$, 'entradas, saídas e saldo do dia');
 select results_eq($$select (d -> 'finance' ->> 'forecast')::numeric from _d$$, array[300::numeric], 'previsto = orçamento enviado de 300');
@@ -121,7 +121,7 @@ select results_eq($$select (d -> 'finance' ->> 'receivable')::numeric from _d$$,
 
 select lives_ok($$select public.void_cash_transaction((select id from public.cash_transactions where description = 'Internet'), 'Lançado em duplicidade')$$,
   'dono anula lançamento');
-select results_eq($$select (public.dashboard_summary(current_date, current_date) -> 'finance' ->> 'outflow')::numeric$$, array[120::numeric],
+select results_eq($$select (public.dashboard_summary((now() at time zone 'America/Sao_Paulo')::date, (now() at time zone 'America/Sao_Paulo')::date) -> 'finance' ->> 'outflow')::numeric$$, array[120::numeric],
   'lançamento anulado sai do saldo');
 select results_eq($$select count(*)::int from public.cash_transactions where voided_at is not null$$, array[1], 'mas continua registrado');
 select throws_ok($$delete from public.cash_transactions$$, '42501', null, 'lançamentos nunca são apagados');

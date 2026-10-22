@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react';
 import { Gift } from 'lucide-react';
 
-// Recado para quem chega por um link de campanha que oferece mais 14 dias pelo WhatsApp.
+// Recado para quem chega por um link de campanha (mensagem do WhatsApp ou post em grupo).
 const NOTES = {
-  '/14dias': 'Veio pela mensagem do WhatsApp? Comece os 14 dias grátis e responda a mensagem para ganhar mais 14.',
-  '/grupos': 'Veio pelo grupo? Comece os 14 dias grátis e chame no WhatsApp para ganhar mais 14.',
+  // Mensagens antigas do WhatsApp prometiam mais 14 dias pelo número: continua valendo (estender pela área admin).
+  '/14dias': 'Veio pela mensagem do WhatsApp? Crie sua conta grátis e responda a mensagem: eu libero mais 14 dias de Pro e te ajudo a configurar.',
+  '/gratis': 'Veio pela mensagem do WhatsApp? Crie sua conta grátis e me chame lá se quiser ajuda para configurar.',
+  '/grupos': 'Veio pelo grupo? Crie sua conta grátis e me chame no WhatsApp se quiser ajuda para configurar.',
 };
 
 export function CampaignNote() {

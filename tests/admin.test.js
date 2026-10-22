@@ -6,7 +6,7 @@ import {
 } from '@/features/admin/permissions';
 import { readAdminConfig, signSession, verifySession, SESSION_HOURS } from '@/features/admin/token';
 import {
-  situationKey, dueInfo, monthlyValue, matchesSituation, matchesQuery, relativeDays, toCsv, profileComplete,
+  situation, situationKey, dueInfo, monthlyValue, matchesSituation, matchesQuery, relativeDays, toCsv, profileComplete,
 } from '@/features/admin/format';
 
 const DAY = 86400000;
@@ -166,6 +166,10 @@ describe('área admin: situação e vencimento', () => {
     expect(situationKey({ ...base, access: 'active', subscription_status: 'active' })).toBe('active');
     expect(situationKey({ ...base, access: 'grace', subscription_status: 'past_due' })).toBe('grace');
     expect(situationKey({ ...base, access: 'blocked', trial_ends_at: iso(-3) })).toBe('expired');
+    // Plano Grátis (migration 0018): teste acabou sem assinar ou cancelou o Pro
+    expect(situationKey({ ...base, access: 'free', trial_ends_at: iso(-3) })).toBe('expired');
+    expect(situationKey({ ...base, access: 'free', subscription_status: 'canceled' })).toBe('canceled');
+    expect(situation({ ...base, access: 'free', trial_ends_at: iso(-3) }).label).toBe('Plano Grátis');
     expect(situationKey({ ...base, access: 'blocked', subscription_status: 'canceled' })).toBe('canceled');
     expect(situationKey({ ...base, access: 'blocked', subscription_status: 'suspended' })).toBe('suspended');
   });
@@ -179,7 +183,7 @@ describe('área admin: situação e vencimento', () => {
   it('vencimento: fim do teste, pago até ou quando venceu', () => {
     expect(dueInfo(base)).toMatchObject({ label: 'Teste até', days: 5 });
     expect(dueInfo({ ...base, access: 'active', subscription_status: 'active', paid_until: iso(20) })).toMatchObject({ label: 'Pago até', days: 20 });
-    expect(dueInfo({ ...base, access: 'blocked', trial_ends_at: iso(-10), paid_until: iso(-3) })).toMatchObject({ label: 'Venceu em', days: -3 });
+    expect(dueInfo({ ...base, access: 'blocked', trial_ends_at: iso(-10), paid_until: iso(-3) })).toMatchObject({ label: 'No Grátis desde', days: -3 });
     expect(dueInfo({ ...base, subscription_status: 'suspended' }).date).toBeNull();
   });
 

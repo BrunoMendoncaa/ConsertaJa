@@ -232,3 +232,15 @@ describe('Mercado Pago: mensagem quando a assinatura é recusada', () => {
     expect(msg).toContain('bad_request · payer_email is invalid');
   });
 });
+
+describe('plano Grátis: uso do mês', () => {
+  it('conta, avisa perto do limite e trava no limite', async () => {
+    const { freeUsage, FREE_OS_LIMIT, FREE_OS_WARN_AT, PLAN_COMPARISON } = await import('@/lib/billing');
+    expect(freeUsage({ access: 'trial', os_month: 50 })).toBeNull();
+    expect(freeUsage({ access: 'free', os_month: 3, os_limit: 30 })).toEqual({ used: 3, limit: 30, left: 27, near: false, reached: false });
+    expect(freeUsage({ access: 'free', os_month: FREE_OS_WARN_AT, os_limit: 30 })).toMatchObject({ near: true, reached: false, left: 6 });
+    expect(freeUsage({ access: 'free', os_month: 30, os_limit: 30 })).toMatchObject({ near: false, reached: true, left: 0 });
+    expect(freeUsage({ access: 'free', os_month: 31 })).toMatchObject({ limit: FREE_OS_LIMIT, left: 0, reached: true });
+    expect(PLAN_COMPARISON[0]).toEqual(['Ordens de serviço', `até ${FREE_OS_LIMIT} por mês`, 'sem limite']);
+  });
+});

@@ -5,7 +5,7 @@ import { getMyAssistances } from '@/features/tenancy/queries';
 import { switchAssistance } from '@/features/tenancy/actions';
 import { getBillingStatus } from '@/features/billing/queries';
 import { BillingNotice } from '@/features/billing/components/billing-notice';
-import { ACCESS_LABELS, trialDaysLeft } from '@/lib/billing';
+import { ACCESS_LABELS, trialDaysLeft, freeUsage } from '@/lib/billing';
 import { ProfileNotice } from '@/features/tenancy/components/profile-notice';
 import { missingProfileFields } from '@/features/tenancy/profile';
 
@@ -16,10 +16,13 @@ export default async function PainelLayout({ children }) {
   const [mine, billing] = await Promise.all([getMyAssistances(), getBillingStatus()]);
   const isManager = MANAGER_ROLES.includes(ctx.role);
   const trialLeft = trialDaysLeft(billing);
+  const usage = freeUsage(billing);
   const planLabel = billing
     ? billing.access === 'trial'
-      ? `Teste grátis · ${trialLeft === 0 ? 'último dia' : `${trialLeft} ${trialLeft === 1 ? 'dia' : 'dias'}`}`
-      : ACCESS_LABELS[billing.access]
+      ? `Pro grátis · ${trialLeft === 0 ? 'último dia' : `${trialLeft} ${trialLeft === 1 ? 'dia' : 'dias'}`}`
+      : usage
+        ? `Grátis · ${usage.used} de ${usage.limit} OS`
+        : ACCESS_LABELS[billing.access]
     : null;
 
   const items = [

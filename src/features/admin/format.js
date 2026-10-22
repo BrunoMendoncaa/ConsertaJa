@@ -8,22 +8,22 @@ import { daysFromToday } from '@/lib/dates';
  * e do status da assinatura.
  */
 export const SITUATIONS = {
-  trial: { label: 'Teste grátis', tone: 'blue' },
-  trial_subscribed: { label: 'Teste · já assinou', tone: 'teal' },
-  active: { label: 'Ativa', tone: 'emerald' },
+  trial: { label: 'Pro grátis (teste)', tone: 'blue' },
+  trial_subscribed: { label: 'Pro grátis · já assinou', tone: 'teal' },
+  active: { label: 'Pro pago', tone: 'emerald' },
   grace: { label: 'Pagamento pendente', tone: 'amber' },
-  expired: { label: 'Teste encerrado', tone: 'orange' },
-  canceled: { label: 'Cancelada', tone: 'zinc' },
+  expired: { label: 'Plano Grátis', tone: 'orange' },
+  canceled: { label: 'Grátis · cancelou o Pro', tone: 'zinc' },
   suspended: { label: 'Suspensa', tone: 'red' },
 };
 
 export const SITUATION_FILTERS = [
   ['todas', 'Todas'],
-  ['trial', 'Em teste'],
-  ['active', 'Ativas'],
+  ['trial', 'Pro grátis'],
+  ['active', 'Pro pago'],
   ['grace', 'Pagamento pendente'],
-  ['expired', 'Teste encerrado'],
-  ['canceled', 'Canceladas'],
+  ['expired', 'Plano Grátis'],
+  ['canceled', 'Cancelaram o Pro'],
   ['suspended', 'Suspensas'],
 ];
 
@@ -68,7 +68,7 @@ export function dueInfo(a, now = Date.now()) {
   if (key === 'active' || key === 'grace') return { date: a.paid_until, label: 'Pago até', days: daysUntil(a.paid_until, now) };
   const ended = [a.trial_ends_at, a.paid_until].filter(Boolean).map((d) => new Date(d).getTime());
   const last = ended.length ? new Date(Math.max(...ended)).toISOString() : null;
-  return { date: last, label: 'Venceu em', days: daysUntil(last, now) };
+  return { date: last, label: 'No Grátis desde', days: daysUntil(last, now) };
 }
 
 export function relativeDays(days) {

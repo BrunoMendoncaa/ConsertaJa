@@ -26,6 +26,7 @@ import { formatPhone, whatsappLink } from '@/lib/phone';
 import {
   PRIORITIES, ACCESSORIES, ENTRY_CHECKLIST, OUTCOMES, TECH_ROLES, MANAGER_ROLES, CASH_CATEGORIES, PAYMENT_METHODS,
 } from '@/lib/constants';
+import { getBillingStatus } from '@/features/billing/queries';
 
 export const metadata = { title: 'OS' };
 
@@ -68,7 +69,10 @@ export default async function OrderPage({ params }) {
   const message = `Olá, ${firstName}! Acompanhe a OS ${order.code} (${equipmentName}) na ${assistance.name}: ${link} — use o telefone cadastrado e o código ${order.access_code}.`;
   const events = (history || []).map((h) => ({ ...h, author: h.author?.full_name }));
   const latestBudget = budgets?.[0];
-  const warrantyLabel = order.outcome === 'REPARADO' ? 'Certificado de garantia' : 'Termo de retirada';
+  const billing = await getBillingStatus();
+  const warrantyLabel = order.outcome === 'REPARADO'
+    ? (billing?.plan === 'free' ? 'Comprovante de garantia' : 'Certificado de garantia')
+    : 'Termo de retirada';
   const today = todayISO();
 
   return (

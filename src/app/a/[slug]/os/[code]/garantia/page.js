@@ -33,7 +33,8 @@ export default async function PortalWarrantyPage({ params }) {
         </Link>
         <PrintButton label="Imprimir ou salvar PDF" />
       </div>
-      <WarrantyCertificate doc={doc} order={order} approved={approved} assistance={assistance} logo={logoUrl(assistance.logo_path)} />
+      <WarrantyCertificate doc={doc} order={order} approved={approved} assistance={assistance} logo={logoUrl(assistance.logo_path)}
+        simple={assistance.plan === 'free'} />
     </div>
   );
 }

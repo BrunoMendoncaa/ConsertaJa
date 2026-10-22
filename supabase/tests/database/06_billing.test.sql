@@ -1,4 +1,4 @@
--- Assinatura: teste grátis, bloqueio, sincronização com o Mercado Pago e permissões
+-- Assinatura: teste grátis, plano Grátis depois do teste, sincronização com o Mercado Pago e permissões
 begin;
 create extension if not exists pgtap with schema extensions;
 set search_path to public, extensions;
@@ -69,26 +69,28 @@ select ok((select trial_ends_at < now() + interval '3 days 1 minute' from public
 update public.profiles set active_assistance_id = 'aaaaaaaa-0000-4000-8000-000000000000' where id = 'a0000000-0000-4000-8000-000000000a01';
 
 -- ---------------------------------------------------------------------------
--- Teste vencido: não abre OS nem convida; o resto continua
+-- Teste vencido: vira o plano Grátis (até 30 OS/mês, não convida); nada é bloqueado
 -- ---------------------------------------------------------------------------
 update public.assistances set trial_ends_at = now() - interval '1 day' where id = 'aaaaaaaa-0000-4000-8000-000000000000';
-select is(private.billing_access('aaaaaaaa-0000-4000-8000-000000000000'), 'blocked', 'teste vencido sem pagamento: bloqueado');
+select is(private.billing_access('aaaaaaaa-0000-4000-8000-000000000000'), 'free', 'teste vencido sem pagamento: plano Grátis');
 
 select set_config('request.jwt.claims', '{"sub":"a0000000-0000-4000-8000-000000000a02","role":"authenticated"}', true);
 set local role authenticated;
-select throws_ok($$select * from public.create_service_order('{"customer_id":"ac000000-0000-4000-8000-000000000001","equipment_id":"ae000000-0000-4000-8000-000000000001","reported_issue":"Não liga"}')$$,
-  'P0001', null, 'bloqueado: técnico não abre OS nova');
-select ok((select count(*) = 1 from public.customers where id = 'ac000000-0000-4000-8000-000000000001'), 'bloqueado: continua vendo os dados');
+select lives_ok($$select * from public.create_service_order('{"customer_id":"ac000000-0000-4000-8000-000000000001","equipment_id":"ae000000-0000-4000-8000-000000000001","reported_issue":"Não liga"}')$$,
+  'Grátis: técnico abre OS (dentro do limite do mês)');
+select ok((select count(*) = 1 from public.customers where id = 'ac000000-0000-4000-8000-000000000001'), 'Grátis: continua vendo os dados');
 
 select set_config('request.jwt.claims', '{"sub":"a0000000-0000-4000-8000-000000000a01","role":"authenticated"}', true);
 set local role authenticated;
-select throws_ok($$select public.create_invitation('novo@test.dev', 'technician')$$, 'P0001', null, 'bloqueado: não convida ninguém');
-select is(billing_status() ->> 'access', 'blocked', 'tela mostra conta bloqueada');
+select throws_ok($$select public.create_invitation('novo@test.dev', 'technician')$$, 'P0001',
+  'Convidar a equipe é do plano Pro. Assine em "Meu plano" para trabalhar com técnicos e atendentes.', 'Grátis: não convida ninguém');
+select results_eq($$select billing_status() ->> 'access', billing_status() ->> 'plan', (billing_status() ->> 'os_limit')::int$$,
+  $$values ('free'::text, 'free'::text, 30)$$, 'tela mostra o plano Grátis e o limite');
 
 reset role;
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
 set local role anon;
-select results_eq($$select name from public.portal_assistance('tenant-a-test')$$, array['Tenant A'], 'bloqueado: portal dos clientes continua no ar');
+select results_eq($$select name from public.portal_assistance('tenant-a-test')$$, array['Tenant A'], 'Grátis: portal dos clientes continua no ar');
 
 -- ---------------------------------------------------------------------------
 -- Assinatura anual pelo Mercado Pago (servidor = service_role)
@@ -97,8 +99,8 @@ reset role;
 set local role service_role;
 select ok(public.billing_register_checkout('aaaaaaaa-0000-4000-8000-000000000000', 'pre-1', 'yearly', 490, ' Dono@A.com ',
   'https://mp.test/checkout?pre=1', 'a0000000-0000-4000-8000-000000000a01') is not null, 'servidor registra a assinatura criada');
-select is(public.billing_apply_sync('pre-1', 'aaaaaaaa-0000-4000-8000-000000000000', 'pending', '[]'), 'blocked',
-  'assinatura ainda pendente não libera');
+select is(public.billing_apply_sync('pre-1', 'aaaaaaaa-0000-4000-8000-000000000000', 'pending', '[]'), 'free',
+  'assinatura ainda pendente não libera o Pro');
 select throws_ok($$select public.billing_apply_sync('pre-1', 'bbbbbbbb-0000-4000-8000-000000000000', 'authorized', '[]')$$,
   'P0001', null, 'referência de outra assistência é recusada');
 select throws_ok($$select public.billing_apply_sync('nao-existe', 'aaaaaaaa-0000-4000-8000-000000000000', 'authorized', '[]')$$,
@@ -120,7 +122,7 @@ select is((select payer_email from public.billing_subscriptions where provider_i
 select set_config('request.jwt.claims', '{"sub":"a0000000-0000-4000-8000-000000000a02","role":"authenticated"}', true);
 set local role authenticated;
 select lives_ok($$select * from public.create_service_order('{"customer_id":"ac000000-0000-4000-8000-000000000001","equipment_id":"ae000000-0000-4000-8000-000000000001","reported_issue":"Não liga"}')$$,
-  'conta paga: técnico volta a abrir OS');
+  'conta paga: técnico abre OS');
 select is((select count(*)::int from public.billing_payments), 0, 'técnico não vê os pagamentos da assinatura');
 select is(billing_status() ->> 'access', 'active', 'técnico vê que a conta está liberada');
 
@@ -151,7 +153,7 @@ set local role anon;
 select results_eq($$select name from public.portal_assistance('tenant-a-test')$$, array['Tenant A'], 'cancelada: portal dos clientes continua no ar');
 
 -- ---------------------------------------------------------------------------
--- Mensal atrasado: 7 dias de tolerância, depois bloqueia
+-- Mensal atrasado: 7 dias de tolerância, depois volta ao Grátis
 -- ---------------------------------------------------------------------------
 reset role;
 update public.assistances set trial_ends_at = now() - interval '1 day' where id = 'bbbbbbbb-0000-4000-8000-000000000000';
@@ -165,7 +167,7 @@ select results_eq($$select subscription_status, past_due_since is not null from 
   $$values ('past_due'::text, true)$$, 'status em atraso, com data do atraso');
 -- o tempo passa: 10 dias depois do vencimento
 update public.assistances set paid_until = now() - interval '10 days' where id = 'bbbbbbbb-0000-4000-8000-000000000000';
-select is(private.billing_access('bbbbbbbb-0000-4000-8000-000000000000'), 'blocked', 'passou da tolerância: bloqueia');
+select is(private.billing_access('bbbbbbbb-0000-4000-8000-000000000000'), 'free', 'passou da tolerância: volta ao Grátis');
 set local role service_role;
 select is(public.billing_apply_sync('pre-b', 'bbbbbbbb-0000-4000-8000-000000000000', 'authorized',
   jsonb_build_array(
@@ -191,7 +193,7 @@ select results_eq($$select subscription_status, mp_preapproval_id from public.as
 update public.assistances set trial_ends_at = now() - interval '2 days' where id = 'cccccccc-0000-4000-8000-000000000000';
 select is(private.billing_access('cccccccc-0000-4000-8000-000000000000'), 'grace', 'teste acabou e a 1ª cobrança ainda não foi confirmada: tolerância');
 update public.assistances set trial_ends_at = now() - interval '8 days' where id = 'cccccccc-0000-4000-8000-000000000000';
-select is(private.billing_access('cccccccc-0000-4000-8000-000000000000'), 'blocked', 'passou a tolerância sem cobrança: bloqueia');
+select is(private.billing_access('cccccccc-0000-4000-8000-000000000000'), 'free', 'passou a tolerância sem cobrança: Grátis');
 set local role service_role;
 select is(public.billing_apply_sync('pre-c', 'cccccccc-0000-4000-8000-000000000000', 'authorized',
   jsonb_build_array(jsonb_build_object('id', 'inv-c1', 'amount', 49, 'status', 'approved', 'paid_at', now()))),

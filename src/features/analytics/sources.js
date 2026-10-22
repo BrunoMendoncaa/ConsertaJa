@@ -8,6 +8,7 @@ const NAMED_SOURCES = {
   youtube: 'YouTube',
   tiktok: 'TikTok',
   email: 'E-mail',
+  portal: 'Portal do cliente',
 };
 
 /** Nome do site de origem a partir do host (google.com.br -> Google). */

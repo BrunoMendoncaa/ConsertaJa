@@ -76,12 +76,14 @@ Quando chegar uma migration nova em `supabase/migrations/`, cole **só ela** no 
 | `20261009140000_billing_uma_assinatura.sql` | Uma assinatura vigente por assistência: assinar de novo depois de cancelar volta a valer, e assinaturas antigas não tomam o lugar da mais nova. |
 | `20261014120000_admin.sql` | Área admin: registro das ações do dono do TecnoFix, limite de tentativas de login e consultas de todas as assistências e usuários (só o servidor executa). |
 | `20261021120000_acessos_admin.sql` | Acessos da área admin: contas criadas pela master, com permissões por funcionalidade (só o servidor lê e grava). |
+| `20261022120000_plano_gratis.sql` | Plano Grátis sem prazo: depois dos 14 dias de Pro, a conta fica no Grátis (até 30 OS por mês, sem convidar equipe, comprovante de garantia simples) em vez de travar. |
 
 ## Assinatura do TecnoFix (Mercado Pago)
 
-- **Teste grátis de 14 dias, sem cartão**, a partir do cadastro da assistência. Outra assistência do mesmo dono não ganha teste novo.
-- **Plano único:** R$ 49/mês ou R$ 490/ano (valores em `src/lib/billing.js`).
-- **Sem assinatura** (teste acabou ou pagamento atrasado há mais de 7 dias): a equipe continua vendo, concluindo, entregando e recebendo, mas **não abre OS nova nem convida pessoas**. O portal dos clientes continua no ar. A regra fica no banco (`private.billing_access`).
+- **Dois planos.** **Grátis**, sem prazo e sem cartão: até **30 OS por mês** (contadas no calendário de Brasília, zera no dia 1º), sem convidar equipe e com **comprovante de garantia simples** (sem logo nem tabela de itens; o portal do cliente mostra "Feito com TecnoFix"). **Pro**: R$ 49/mês ou R$ 490/ano, sem limite de OS, equipe e certificado de garantia completo com a marca da assistência (valores e comparação em `src/lib/billing.js`).
+- **Toda conta nova começa com 14 dias de Pro**, sem cartão. Outra assistência do mesmo dono não ganha esses dias de novo. Depois dos 14 dias, ou com pagamento atrasado há mais de 7 dias, a conta **passa para o Grátis** (nada é apagado; quem tinha equipe continua com ela, só não convida pessoas novas). A regra fica no banco (`private.billing_access`, `private.billing_plan` e o gatilho `enforce_billing`).
+- **Suspensa** (pela área admin): a equipe continua vendo e entregando, mas não abre OS nova nem convida pessoas. O portal dos clientes continua no ar.
+- A landing mostra os dois planos numa tabela discreta (perto do fim da página); o painel avisa quando faltam 6 OS e quando o limite do mês acaba, sempre com o botão **Assinar o Pro**.
 - O dono ou administrador assina em **Meu plano**: o sistema cria a assinatura no Mercado Pago e leva para o pagamento lá. Na volta, e a cada aviso (webhook), o sistema **consulta a API do Mercado Pago** antes de liberar a conta; nada é liberado só pela URL ou pelo corpo do aviso.
 
 ### Configurar
@@ -253,7 +255,7 @@ Em `https://tecnofix.pro/admin`, fora do painel das assistências e sem link no 
 - pessoas cadastradas que ainda não criaram assistência.
 
 **O que dá para fazer:**
-- estender o teste grátis;
+- estender o Pro grátis (teste);
 - suspender e reativar uma assistência;
 - conferir a assinatura no Mercado Pago;
 - baixar a lista em CSV (abre no Excel).
@@ -307,7 +309,7 @@ Em `/admin/site`: visitas da página inicial, do cadastro e do entrar.
 
 A visão geral da área admin tem um resumo dos últimos 7 dias.
 
-**Links de campanha.** `https://tecnofix.pro/14dias` (mensagem do WhatsApp), `/anuncio` (anúncio pago no Facebook/Instagram) e `/grupos` (posts em grupos) mostram a página inicial e marcam a origem da visita, por exemplo "WhatsApp · convite-14-dias" e "Facebook · grupos" (lista em `src/features/analytics/constants.js`; cada link novo precisa de um rewrite no `next.config.mjs`). O botão "Tirar dúvida no WhatsApp" da página usa o número de `src/lib/contact.js`. Links com `?utm_source=...&utm_campaign=...` também são reconhecidos. A campanha vale para a visita inteira (inclusive o cadastro).
+**Links de campanha.** `https://tecnofix.pro/gratis` (mensagem do WhatsApp, desde o plano Grátis), `/14dias` (mensagem antiga do WhatsApp), `/anuncio` (anúncio pago no Facebook/Instagram) e `/grupos` (posts em grupos) mostram a página inicial e marcam a origem da visita, por exemplo "WhatsApp · convite-14-dias" e "Facebook · grupos" (lista em `src/features/analytics/constants.js`; cada link novo precisa de um rewrite no `next.config.mjs`). O botão "Tirar dúvida no WhatsApp" da página usa o número de `src/lib/contact.js`. Links com `?utm_source=...&utm_campaign=...` também são reconhecidos. A campanha vale para a visita inteira (inclusive o cadastro).
 
 **Como funciona.**
 - O componente `SiteTracker` (landing e páginas de login/cadastro) manda cada visita e cada clique em botão com `data-track` para `POST /api/site/evento`.
