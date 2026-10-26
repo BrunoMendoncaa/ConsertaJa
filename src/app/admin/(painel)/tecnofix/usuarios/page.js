@@ -48,7 +48,7 @@ export default async function AdminUsersPage({ searchParams }) {
 
   return (
     <>
-      <PageHeader title="Usuários" description="Todas as pessoas com conta no TecnoFix, inclusive quem ainda não criou assistência. Logins só de contas de teste ficam em Acessos → Aplicação." />
+      <PageHeader title="Usuários" description="Todas as pessoas com conta no TecnoFix, inclusive quem ainda não criou assistência. Logins só de contas de teste ficam em Acessos → TecnoFix · contas de teste." />
 
       <div className="mb-4 flex flex-wrap gap-2">
         {FILTERS.map(([k, label]) => (
@@ -76,7 +76,7 @@ export default async function AdminUsersPage({ searchParams }) {
                   <p className="text-xs text-slate-500">{u.email}{u.phone ? ` · ${formatPhone(u.phone)}` : ''}</p>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {u.memberships.map((m) => (
-                      <Link key={m.assistance_id} href={`/admin/assistencias/${m.assistance_id}`}><Badge tone={m.is_test ? 'violet' : 'slate'}>{m.name} · {ROLES[m.role]}{m.is_test ? ' · teste' : ''}</Badge></Link>
+                      <Link key={m.assistance_id} href={`/admin/tecnofix/assistencias/${m.assistance_id}`}><Badge tone={m.is_test ? 'violet' : 'slate'}>{m.name} · {ROLES[m.role]}{m.is_test ? ' · teste' : ''}</Badge></Link>
                     ))}
                     {!u.memberships.length && <Badge tone="amber">Sem assistência</Badge>}
                     {!u.email_confirmed_at && <Badge tone="orange">E-mail não confirmado</Badge>}
@@ -101,7 +101,7 @@ export default async function AdminUsersPage({ searchParams }) {
                       <TD>
                         <div className="flex flex-wrap gap-1.5">
                           {u.memberships.map((m) => (
-                            <Link key={m.assistance_id} href={`/admin/assistencias/${m.assistance_id}`} className="hover:opacity-80">
+                            <Link key={m.assistance_id} href={`/admin/tecnofix/assistencias/${m.assistance_id}`} className="hover:opacity-80">
                               <Badge tone={m.is_test ? 'violet' : m.role === 'owner' ? 'indigo' : 'slate'}>{m.name} · {ROLES[m.role]}{m.is_test ? ' · teste' : ''}{m.active ? '' : ' (desativado)'}</Badge>
                             </Link>
                           ))}

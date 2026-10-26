@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import { Wrench, LogOut, KeyRound } from 'lucide-react';
+import { LayoutGrid, LogOut, KeyRound } from 'lucide-react';
 import { requireAdmin } from '@/features/admin/session';
-import { allowedSections } from '@/features/admin/permissions';
+import { hubSections, allowedApps, appSections, appHome } from '@/features/admin/permissions';
 import { adminSignOut } from '@/features/admin/actions';
 import { AdminNav } from '@/features/admin/components/admin-nav';
 import { RefreshButton } from '@/features/admin/components/refresh-button';
@@ -11,19 +11,25 @@ export const dynamic = 'force-dynamic';
 export default async function AdminLayout({ children }) {
   // Cada página confere a própria permissão; aqui só o login (e deixa abrir a troca de senha).
   const session = await requireAdmin(null, { allowPasswordChange: true });
-  const items = session.mustChangePassword ? [] : allowedSections(session).map(({ href, label }) => ({ href, label }));
+  // Antes de trocar a senha obrigatória, nada de menu.
+  const locked = session.mustChangePassword;
+  const hubItems = locked ? [] : hubSections(session).map(({ href, label }) => ({ href, label }));
+  const apps = locked ? [] : allowedApps(session).map((app) => ({
+    key: app.key, name: app.name, base: app.base,
+    home: appHome(session, app.key), items: appSections(session, app.key),
+  }));
   return (
     <div className="min-h-dvh bg-slate-50">
       <header className="sticky top-0 z-30 bg-slate-900 text-white shadow-sm print:hidden">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 sm:px-6 lg:px-8">
-          <Link href="/admin" className="flex items-center gap-2 font-semibold tracking-tight">
-            <span className="inline-flex size-7 items-center justify-center rounded-lg bg-brand-600">
-              <Wrench className="size-4" aria-hidden="true" />
+          <Link href="/admin" className="flex items-center gap-2 font-semibold tracking-tight" title="Todas as aplicações">
+            <span className="inline-flex size-7 items-center justify-center rounded-lg bg-slate-700">
+              <LayoutGrid className="size-4" aria-hidden="true" />
             </span>
-            <span>Tecno<span className="text-accent-500">Fix</span></span>
+            <span>Central</span>
             <span className="rounded bg-accent-500 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-900">Admin</span>
           </Link>
-          <AdminNav items={items} />
+          <AdminNav hubItems={hubItems} apps={apps} master={session.master} />
           <div className="ml-auto flex items-center gap-1 sm:gap-3">
             <RefreshButton renderedAt={new Date().toISOString()} />
             {!session.master && (

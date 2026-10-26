@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { logError } from '@/lib/logger';
 import { readAdminConfig, verifySession, SESSION_HOURS } from './token';
-import { PERMISSION_KEYS, normalizePermissions, can } from './permissions';
+import { PERMISSION_KEYS, APP_KEYS, normalizePermissions, normalizeApps, can } from './permissions';
 
 export const ADMIN_COOKIE = 'tf_admin';
 
@@ -18,7 +18,20 @@ export const ADMIN_COOKIE_OPTIONS = {
   maxAge: SESSION_HOURS * 3600,
 };
 
-export const ACCOUNT_COLUMNS = 'id, username, full_name, permissions, active, must_change_password, session_version, last_login_at, created_at, created_by, updated_at, password_changed_at';
+export const ACCOUNT_COLUMNS = 'id, username, full_name, permissions, apps, active, must_change_password, session_version, last_login_at, created_at, created_by, updated_at, password_changed_at';
+
+/**
+ * Lê acessos da tabela admin_accounts. Antes da migration 0020 a coluna apps não existe:
+ * lê sem ela e considera todo mundo no TecnoFix (como era antes da central de aplicações).
+ */
+export async function selectAccounts(db, columns, build) {
+  const first = await build(db.from('admin_accounts').select(columns));
+  if (!['42703', 'PGRST204'].includes(first.error?.code) || !columns.includes('apps')) return first;
+  const legacy = columns.split(',').map((c) => c.trim()).filter((c) => c !== 'apps').join(', ');
+  const res = await build(db.from('admin_accounts').select(legacy));
+  const fill = (row) => (row ? { ...row, apps: ['tecnofix'] } : row);
+  return { ...res, data: Array.isArray(res.data) ? res.data.map(fill) : fill(res.data) };
+}
 
 export function adminConfig() {
   return readAdminConfig();
@@ -26,8 +39,8 @@ export function adminConfig() {
 
 /**
  * Sessão da área admin (uma vez por pedido):
- * - master: { master: true, username, permissions: todas }
- * - conta do banco: { master: false, id, username, name, permissions, mustChangePassword }
+ * - master: { master: true, username, permissions: todas, apps: todas }
+ * - conta do banco: { master: false, id, username, name, apps, permissions, mustChangePassword }
  * A conta do banco é conferida a cada pedido: desativada, apagada ou com a senha trocada, a sessão cai.
  */
 export const getAdminSession = cache(async () => {
@@ -37,10 +50,12 @@ export const getAdminSession = cache(async () => {
   const token = verifySession(cfg, jar.get(ADMIN_COOKIE)?.value);
   if (!token) return null;
   if (token.master) {
-    return { master: true, username: cfg.username, name: null, permissions: PERMISSION_KEYS, mustChangePassword: false, expiresAt: token.expiresAt };
+    return {
+      master: true, username: cfg.username, name: null, permissions: PERMISSION_KEYS, apps: APP_KEYS,
+      mustChangePassword: false, expiresAt: token.expiresAt,
+    };
   }
-  const { data, error } = await createAdminClient().from('admin_accounts').select(ACCOUNT_COLUMNS)
-    .eq('username', token.username).maybeSingle();
+  const { data, error } = await selectAccounts(createAdminClient(), ACCOUNT_COLUMNS, (q) => q.eq('username', token.username).maybeSingle());
   if (error) {
     logError('admin.session', error);
     return null;
@@ -51,7 +66,8 @@ export const getAdminSession = cache(async () => {
     id: data.id,
     username: data.username,
     name: data.full_name,
-    permissions: normalizePermissions(data.permissions),
+    apps: normalizeApps(data.apps),
+    permissions: normalizePermissions(data.permissions, data.apps),
     mustChangePassword: data.must_change_password,
     sessionVersion: data.session_version,
     expiresAt: token.expiresAt,

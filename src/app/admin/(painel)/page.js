@@ -1,197 +1,99 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ExternalLink, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { StatCard } from '@/components/ui/stat-card';
-import { Table, THead, TH, TBody, TD } from '@/components/ui/table';
-import {
-  listAssistances, listUsers, approvedPaymentsSince, recentAdminActions, siteEventsSince, AdminSetupError, SiteSetupError,
-} from '@/features/admin/queries';
-import { summarize, periodRange } from '@/features/analytics/stats';
-import { fmtNum } from '@/features/analytics/components/charts';
-import { situationKey, dueInfo, monthlyValue } from '@/features/admin/format';
-import { SituationBadge, DueCell, OwnerContact, SetupNotice, ACTION_LABELS, actionDetail } from '@/features/admin/components/bits';
-import { formatBRL } from '@/lib/money';
-import { formatDate, formatDateTime } from '@/lib/dates';
 import { requireAdmin } from '@/features/admin/session';
-import { can, homeFor } from '@/features/admin/permissions';
+import { allowedApps, appHome } from '@/features/admin/permissions';
+import { appSummary } from '@/features/admin/app-summaries';
+import { AppIcon } from '@/features/admin/components/app-icon';
+import { formatDateTime } from '@/lib/dates';
+import { cn } from '@/lib/cn';
 
-export const metadata = { title: 'Visão geral' };
+export const metadata = { title: 'Aplicações' };
 
-const DAY = 86400000;
+const TONES = { positive: 'text-emerald-700', warning: 'text-amber-700', negative: 'text-red-700' };
 
-/** Primeiro dia do mês corrente no fuso de São Paulo, em ISO. */
-function monthStartISO() {
-  const ym = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit' }).format(new Date());
-  return new Date(`${ym}-01T00:00:00-03:00`).toISOString();
-}
-
-export default async function AdminOverviewPage() {
+/** Tela inicial da central: as aplicações que a conta abre, com os números principais de cada uma. */
+export default async function AdminHubPage() {
   const session = await requireAdmin();
-  if (!can(session, 'visao_geral')) redirect(homeFor(session));
-  const money = can(session, 'financeiro');
-  const seeAssistances = can(session, 'assistencias_ver');
-  const seeSite = can(session, 'site_ver');
-
-  let assistances, users, payments, actions;
-  try {
-    [assistances, users, payments, actions] = await Promise.all([
-      listAssistances(), listUsers(), money ? approvedPaymentsSince(monthStartISO()) : [],
-      recentAdminActions(6, session.master ? null : session.username),
-    ]);
-  } catch (err) {
-    if (err instanceof AdminSetupError) return <><PageHeader title="Visão geral" /><SetupNotice message={err.message} /></>;
-    throw err;
-  }
-
-  // Resumo do site nos últimos 7 dias (se a contagem de acessos já estiver ativa).
-  let site = null;
-  if (seeSite) try {
-    const range = periodRange('7');
-    site = summarize({ events: await siteEventsSince(range.from.toISOString()), users, assistances, range }).totals;
-  } catch (err) {
-    if (!(err instanceof SiteSetupError)) throw err;
-  }
-
-  const now = Date.now();
-  const count = (k) => assistances.filter((a) => situationKey(a) === k).length;
-  const mrr = assistances.reduce((sum, a) => sum + monthlyValue(a), 0);
-  const received = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-  const created = (days) => assistances.filter((a) => now - new Date(a.created_at).getTime() <= days * DAY).length;
-  const withoutAssistance = users.filter((u) => !u.memberships?.length).length;
-  const subscribedInTrial = count('trial_subscribed');
-
-  // Precisam de atenção: teste acabando sem assinar, pagamento pendente, teste encerrado há pouco.
-  const attention = assistances
-    .map((a) => ({ a, key: situationKey(a), due: dueInfo(a, now) }))
-    .filter(({ key, due }) =>
-      (key === 'trial' && due.days !== null && due.days <= 5)
-      || key === 'grace'
-      || (key === 'expired' && due.days !== null && due.days >= -14))
-    .sort((x, y) => (x.due.days ?? 0) - (y.due.days ?? 0))
-    .slice(0, 12);
-  const newest = assistances.slice(0, 6);
+  const apps = allowedApps(session);
+  const summaries = await Promise.all(apps.map((app) => appSummary(session, app.key)));
 
   return (
     <>
-      <PageHeader title="Visão geral" description={`Atualizado em ${formatDateTime(new Date())}`} />
+      <PageHeader
+        title="Aplicações"
+        description={`Atualizado em ${formatDateTime(new Date())} · escolha uma aplicação para ver os detalhes.`}
+      />
 
-      <section aria-labelledby="h-assist" className="mb-6">
-        <h2 id="h-assist" className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">Assistências</h2>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-          <StatCard label="Total" value={assistances.length} hint={`${created(7)} nos últimos 7 dias`} />
-          <StatCard label="Pro grátis (teste)" value={count('trial') + subscribedInTrial} hint={subscribedInTrial ? `${subscribedInTrial} já assinaram` : 'Ainda não assinaram'} />
-          <StatCard label="Pro pagantes" value={count('active')} tone="positive" hint="Assinatura em dia" />
-          <StatCard label="Pagamento pendente" value={count('grace')} tone={count('grace') ? 'warning' : 'default'} hint="Dentro da tolerância" />
-          <StatCard label="Plano Grátis" value={count('expired') + count('canceled')} hint={`${count('canceled')} cancelaram o Pro`} />
-          <StatCard label="Suspensas" value={count('suspended')} tone={count('suspended') ? 'negative' : 'default'} hint="Bloqueadas por você" />
+      {!apps.length && (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
+          <p className="font-medium text-slate-900">Nenhuma aplicação liberada para a sua conta</p>
+          <p className="mt-1 text-sm text-slate-500">Peça ao administrador master para liberar em Acessos.</p>
         </div>
-      </section>
+      )}
 
-      <section aria-labelledby="h-rec" className="mb-8">
-        <h2 id="h-rec" className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">{money ? 'Receita e crescimento' : 'Crescimento'}</h2>
-        <div className={`grid grid-cols-2 gap-4 ${money ? 'md:grid-cols-4' : ''}`}>
-          {money && <StatCard label="Receita mensal recorrente" value={formatBRL(mrr)} tone="positive" hint="Assinaturas pagando (anual ÷ 12)" />}
-          {money && <StatCard label="Recebido no mês" value={formatBRL(received)} hint={`${payments.length} pagamento(s) aprovado(s)`} />}
-          <StatCard label="Novas em 30 dias" value={created(30)} hint={`${created(7)} nos últimos 7 dias`} />
-          <StatCard label="Pessoas cadastradas" value={users.length} hint={`${withoutAssistance} sem assistência`} />
-        </div>
-      </section>
-
-      <div className="grid gap-6 xl:grid-cols-3">
-        {seeAssistances && <Card className="h-fit xl:col-span-2">
-          <CardHeader title="Precisam de atenção" description="Pro grátis acabando sem assinar, pagamento pendente e quem foi para o Grátis nos últimos 14 dias." />
-          {attention.length ? (
-            <>
-              <ul className="divide-y divide-slate-100 md:hidden">
-                {attention.map(({ a }) => (
-                  <li key={a.id} className="px-5 py-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <Link href={`/admin/assistencias/${a.id}`} className="font-medium text-slate-900 hover:text-brand-700">{a.name}</Link>
-                      <SituationBadge assistance={a} />
-                    </div>
-                    <div className="mt-1 flex items-center justify-between gap-3 text-sm">
-                      <span className="text-slate-600">{a.owner_name || a.owner_email}</span>
-                      <DueCell assistance={a} compact />
-                    </div>
-                    <OwnerContact assistance={a} message={`Olá, ${(a.owner_name || '').split(' ')[0]}! Aqui é do TecnoFix.`} />
-                  </li>
-                ))}
-              </ul>
-              <div className="hidden md:block">
-                <Table>
-                  <THead><tr><TH>Assistência</TH><TH>Situação</TH><TH>Vencimento</TH><TH>Contato</TH></tr></THead>
-                  <TBody>
-                    {attention.map(({ a }) => (
-                      <tr key={a.id}>
-                        <TD>
-                          <Link href={`/admin/assistencias/${a.id}`} className="font-medium text-slate-900 hover:text-brand-700">{a.name}</Link>
-                          <p className="text-xs text-slate-500">{a.owner_name || '—'} · {a.orders_30d} OS em 30 dias</p>
-                        </TD>
-                        <TD><SituationBadge assistance={a} /></TD>
-                        <TD><DueCell assistance={a} /></TD>
-                        <TD><OwnerContact assistance={a} message={`Olá, ${(a.owner_name || '').split(' ')[0]}! Aqui é do TecnoFix.`} /></TD>
-                      </tr>
-                    ))}
-                  </TBody>
-                </Table>
-              </div>
-            </>
-          ) : <CardContent className="text-sm text-slate-500">Nada pendente agora.</CardContent>}
-        </Card>}
-
-        <div className={`space-y-6 ${seeAssistances ? '' : 'xl:col-span-3 xl:grid xl:grid-cols-3 xl:gap-6 xl:space-y-0'}`}>
-          {seeSite && <Card>
-            <CardHeader title="Site · últimos 7 dias" actions={<Link href="/admin/site" className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:underline">Ver acessos <ArrowRight className="size-4" aria-hidden="true" /></Link>} />
-            {site ? (
-              <dl className="grid grid-cols-3 divide-x divide-slate-100 text-center">
-                {[['Visitas', site.visits], ['Clicaram em teste', site.ctaVisits], ['Novas contas', site.newUsers]].map(([k, v]) => (
-                  <div key={k} className="px-2 py-4">
-                    <dt className="text-xs text-slate-500">{k}</dt>
-                    <dd className="tabular mt-1 text-xl font-semibold text-slate-900">{fmtNum(v)}</dd>
+      <div className="grid gap-6 lg:grid-cols-2">
+        {apps.map((app, i) => {
+          const summary = summaries[i] || { stats: [] };
+          const home = appHome(session, app.key);
+          return (
+            <section key={app.key} aria-labelledby={`app-${app.key}`} className="flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <AppIcon appKey={app.key} size="lg" />
+                  <div className="min-w-0">
+                    <h2 id={`app-${app.key}`} className="text-lg font-semibold text-slate-900">{app.name}</h2>
+                    <p className="text-sm text-slate-500">{app.tagline}</p>
                   </div>
-                ))}
-              </dl>
-            ) : <CardContent className="text-sm text-slate-500">Contagem de acessos ainda não ativada (migration 0016).</CardContent>}
-          </Card>}
+                </div>
+                {app.site && (
+                  <a href={app.site} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800">
+                    {app.site.replace(/^https?:\/\//, '')} <ExternalLink className="size-3.5" aria-hidden="true" />
+                  </a>
+                )}
+              </div>
 
-          {seeAssistances && <Card>
-            <CardHeader title="Últimas assistências" actions={<Link href="/admin/assistencias" className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:underline">Todas <ArrowRight className="size-4" aria-hidden="true" /></Link>} />
-            <ul className="divide-y divide-slate-100">
-              {newest.map((a) => (
-                <li key={a.id}>
-                  <Link href={`/admin/assistencias/${a.id}`} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-slate-50">
-                    <span className="min-w-0">
-                      <span className="block truncate font-medium text-slate-900">{a.name}</span>
-                      <span className="block text-xs text-slate-500">criada em {formatDate(a.created_at)} · {a.orders} OS</span>
-                    </span>
-                    <SituationBadge assistance={a} />
+              <div className="flex-1 px-5 py-4">
+                {summary.stats.length > 0 ? (
+                  <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {summary.stats.map((s) => (
+                      <div key={s.label} className="rounded-xl bg-slate-50 px-3 py-2.5">
+                        <dt className="text-xs text-slate-500">{s.label}</dt>
+                        <dd className={cn('tabular mt-0.5 text-xl font-semibold tracking-tight text-slate-900', TONES[s.tone])}>{s.value}</dd>
+                        {s.hint && <dd className="mt-0.5 text-[11px] leading-tight text-slate-500">{s.hint}</dd>}
+                      </div>
+                    ))}
+                  </dl>
+                ) : (
+                  <p className="text-sm text-slate-500">{summary.note || 'Sem números para mostrar.'}</p>
+                )}
+              </div>
+
+              <div className="border-t border-slate-100 px-5 py-3">
+                {home ? (
+                  <Link href={home} className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 hover:underline">
+                    Abrir {app.name} <ArrowRight className="size-4" aria-hidden="true" />
                   </Link>
-                </li>
-              ))}
-              {!newest.length && <li className="px-5 py-3 text-sm text-slate-500">Nenhuma assistência ainda.</li>}
-            </ul>
-          </Card>}
+                ) : (
+                  <p className="text-sm text-slate-500">Nenhuma tela desta aplicação está liberada para você.</p>
+                )}
+              </div>
+            </section>
+          );
+        })}
 
-          <Card>
-            <CardHeader title={session.master ? 'Últimas ações na área admin' : 'Suas últimas ações'} />
-            <ul className="divide-y divide-slate-100 text-sm">
-              {actions.map((r) => (
-                <li key={r.id} className="px-5 py-2.5">
-                  <p className="text-slate-900">
-                    {ACTION_LABELS[r.action] || r.action}
-                    {r.assistance_id && seeAssistances && <> · <Link href={`/admin/assistencias/${r.assistance_id}`} className="text-brand-700 hover:underline">abrir</Link></>}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {formatDateTime(r.created_at)}{session.master && ` · ${r.admin_username}`}{actionDetail(r) && ` · ${actionDetail(r)}`}
-                  </p>
-                </li>
-              ))}
-              {!actions.length && <li className="px-5 py-3 text-slate-500">Nenhuma ação ainda.</li>}
-            </ul>
-          </Card>
-        </div>
+        {session.master && (
+          <section className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 px-6 py-10 text-center">
+            <span className="inline-flex size-11 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+              <Plus className="size-6" aria-hidden="true" />
+            </span>
+            <p className="mt-3 font-medium text-slate-900">Próxima aplicação</p>
+            <p className="mt-1 max-w-xs text-sm text-slate-500">
+              Quando você criar outra aplicação, ela entra aqui com os números dela, e você escolhe em Acessos quem pode abrir.
+            </p>
+          </section>
+        )}
       </div>
     </>
   );

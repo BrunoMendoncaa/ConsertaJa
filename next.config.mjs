@@ -34,14 +34,19 @@ const nextConfig = {
     return ['/14dias', '/gratis', '/anuncio'].map((source) => ({ source, destination: '/' }));
   },
   async redirects() {
+    // Área admin virou central de aplicações: as telas do TecnoFix foram para /admin/tecnofix.
+    const adminMoved = ['assistencias', 'usuarios', 'site', 'exportar'].flatMap((page) => [
+      { source: `/admin/${page}`, destination: `/admin/tecnofix/${page}`, permanent: false },
+      { source: `/admin/${page}/:path*`, destination: `/admin/tecnofix/${page}/:path*`, permanent: false },
+    ]);
     const host = publicHost();
-    if (!host || OLD_HOSTS.includes(host) || host.startsWith('localhost') || host.startsWith('127.')) return [];
-    return OLD_HOSTS.map((old) => ({
+    if (!host || OLD_HOSTS.includes(host) || host.startsWith('localhost') || host.startsWith('127.')) return adminMoved;
+    return [...adminMoved, ...OLD_HOSTS.map((old) => ({
       source: '/:path((?!api/).*)',
       has: [{ type: 'host', value: old }],
       destination: `https://${host}/:path`,
       permanent: false,
-    }));
+    }))];
   },
 };
 

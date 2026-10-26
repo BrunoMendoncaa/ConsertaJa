@@ -77,7 +77,7 @@ export default async function AdminAssistancePage({ params, searchParams }) {
       <PageHeader
         title={a.name}
         description={<span className="flex flex-wrap items-center gap-2"><SituationBadge assistance={a} /> /{a.slug} · criada em {formatDate(a.created_at)}</span>}
-        back={isTest ? { href: '/admin/acessos?tipo=aplicacao', label: 'Contas de teste' } : { href: '/admin/assistencias', label: 'Assistências' }}
+        back={isTest ? { href: '/admin/acessos?tipo=tecnofix', label: 'Contas de teste' } : { href: '/admin/tecnofix/assistencias', label: 'Assistências' }}
         actions={
           <a href={portal} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-800 hover:bg-slate-50">
             <ExternalLink className="size-4" aria-hidden="true" /> Abrir portal
@@ -256,7 +256,7 @@ export default async function AdminAssistancePage({ params, searchParams }) {
                   <ActionForm action={markAsTest} className="space-y-3"
                     confirm={`Marcar ${a.name} como conta de teste? Ela sai dos números e das listas de assistências e passa a poder ser excluída.`}>
                     <input type="hidden" name="assistance_id" value={a.id} />
-                    <p className="text-xs text-slate-500">Se esta conta foi criada por você para testar, marque aqui. Ela deixa de contar como assistência, passa para Acessos → Aplicação e pode ser excluída.</p>
+                    <p className="text-xs text-slate-500">Se esta conta foi criada por você para testar, marque aqui. Ela deixa de contar como assistência, passa para Acessos → TecnoFix · contas de teste e pode ser excluída.</p>
                     <PlanChoice idPrefix="marcar" defaultValue="pro" compact />
                     <SubmitButton size="sm" variant="outline" pendingText="Marcando...">Marcar como conta de teste</SubmitButton>
                   </ActionForm>

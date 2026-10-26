@@ -17,19 +17,28 @@ import { PlanChoice } from '@/features/admin/components/plan-choice';
 import { SITE_URL } from '@/lib/supabase/env';
 import { cn } from '@/lib/cn';
 import { PermissionPicker } from '@/features/admin/components/permission-picker';
-import { PERMISSIONS, normalizePermissions, permissionLabel } from '@/features/admin/permissions';
+import { PERMISSIONS, normalizePermissions, normalizeApps } from '@/features/admin/permissions';
+import { APPS, getApp } from '@/features/admin/apps';
 import { formatDateTime } from '@/lib/dates';
 
 export const metadata = { title: 'Acessos' };
 
-function PermissionSummary({ permissions }) {
-  const list = normalizePermissions(permissions);
-  if (!list.length) return <span className="text-slate-400">Nenhuma permissão</span>;
-  if (list.length === PERMISSIONS.length) return <Badge tone="emerald">Tudo liberado</Badge>;
+/** Aplicações do acesso e quantas permissões em cada uma. */
+function AccessSummary({ account }) {
+  const apps = normalizeApps(account.apps);
+  const list = normalizePermissions(account.permissions, apps);
+  if (!apps.length) return <span className="text-slate-400">Nenhuma aplicação</span>;
   return (
     <span className="flex flex-wrap gap-1">
-      {list.slice(0, 3).map((k) => <Badge key={k} tone="slate">{permissionLabel(k)}</Badge>)}
-      {list.length > 3 && <Badge tone="slate">+{list.length - 3}</Badge>}
+      {apps.map((key) => {
+        const total = PERMISSIONS.filter((p) => p.app === key).length;
+        const mine = list.filter((k) => PERMISSIONS.find((p) => p.key === k)?.app === key).length;
+        return (
+          <Badge key={key} tone={mine === total ? 'emerald' : 'slate'}>
+            {getApp(key)?.name} · {mine === total ? 'tudo liberado' : `${mine} de ${total}`}
+          </Badge>
+        );
+      })}
     </span>
   );
 }
@@ -40,9 +49,10 @@ function StatusCell({ account }) {
   return <Badge tone="emerald">Ativo</Badge>;
 }
 
+// Abas: acessos ao painel admin e, para cada aplicação com contas de teste, as contas dela.
 const TABS = [
   ['admin', 'Painel admin', LayoutDashboard],
-  ['aplicacao', 'Aplicação (contas de teste)', Store],
+  ...APPS.filter((a) => a.testAccounts).map((a) => [a.key, `${a.name} · contas de teste`, Store]),
 ];
 
 function Tabs({ current }) {
@@ -62,15 +72,18 @@ function Tabs({ current }) {
 export default async function AdminAccessPage({ searchParams }) {
   const session = await requireAdmin('master');
   const sp = await searchParams;
-  const tab = sp?.tipo === 'aplicacao' ? 'aplicacao' : 'admin';
+  // "aplicacao" era o nome da aba de contas de teste antes da central de aplicações.
+  const tipo = sp?.tipo === 'aplicacao' ? 'tecnofix' : sp?.tipo;
+  const testApp = APPS.find((a) => a.testAccounts && a.key === tipo) || null;
+  const tab = testApp ? testApp.key : 'admin';
 
   return (
     <>
-      <PageHeader title="Acessos" description="Quem entra na área admin e as contas de teste da aplicação." />
+      <PageHeader title="Acessos" description="Quem entra na central, em quais aplicações e o que pode fazer em cada uma. E as contas de teste de cada aplicação." />
       <Tabs current={tab} />
       {tab === 'admin'
         ? <AdminAccounts session={session} />
-        : <TestAccounts deleted={typeof sp?.excluida === 'string' ? sp.excluida.slice(0, 120) : null} keptLogins={Number(sp?.logins_mantidos) || 0} />}
+        : <TestAccounts app={testApp} deleted={typeof sp?.excluida === 'string' ? sp.excluida.slice(0, 120) : null} keptLogins={Number(sp?.logins_mantidos) || 0} />}
     </>
   );
 }
@@ -101,7 +114,7 @@ async function AdminAccounts({ session }) {
           <li className="flex items-center justify-between gap-3 px-5 py-3">
             <span className="min-w-0">
               <span className="block font-medium text-slate-900">{session.username}</span>
-              <span className="block text-xs text-slate-500">Master · tudo liberado</span>
+              <span className="block text-xs text-slate-500">Master · todas as aplicações</span>
             </span>
             <ShieldCheck className="size-5 text-emerald-600" aria-hidden="true" />
           </li>
@@ -110,7 +123,8 @@ async function AdminAccounts({ session }) {
               <Link href={`/admin/acessos/${a.id}`} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-slate-50">
                 <span className="min-w-0">
                   <span className="block truncate font-medium text-slate-900">{a.full_name}</span>
-                  <span className="block text-xs text-slate-500">{a.username} · {normalizePermissions(a.permissions).length} permissão(ões)</span>
+                  <span className="block text-xs text-slate-500">{a.username}</span>
+                  <span className="mt-1 block"><AccessSummary account={a} /></span>
                   <span className="mt-1 block"><StatusCell account={a} /></span>
                 </span>
                 <ChevronRight className="size-4 shrink-0 text-slate-400" aria-hidden="true" />
@@ -120,12 +134,12 @@ async function AdminAccounts({ session }) {
         </ul>
         <div className="hidden overflow-x-auto md:block">
           <Table>
-            <THead><tr><TH>Nome</TH><TH>Usuário</TH><TH>Pode</TH><TH>Situação</TH><TH>Último acesso</TH><TH><span className="sr-only">Editar</span></TH></tr></THead>
+            <THead><tr><TH>Nome</TH><TH>Usuário</TH><TH>Aplicações</TH><TH>Situação</TH><TH>Último acesso</TH><TH><span className="sr-only">Editar</span></TH></tr></THead>
             <TBody>
               <tr>
                 <TD className="font-medium text-slate-900">Você</TD>
                 <TD className="font-mono text-xs">{session.username}</TD>
-                <TD><Badge tone="emerald">Master · tudo liberado</Badge></TD>
+                <TD><Badge tone="emerald">Master · todas as aplicações</Badge></TD>
                 <TD><Badge tone="emerald">Ativo</Badge></TD>
                 <TD className="text-xs text-slate-500">Senha nas variáveis da Vercel</TD>
                 <TD />
@@ -134,7 +148,7 @@ async function AdminAccounts({ session }) {
                 <tr key={a.id} className="align-top">
                   <TD className="font-medium text-slate-900">{a.full_name}</TD>
                   <TD className="font-mono text-xs">{a.username}</TD>
-                  <TD><PermissionSummary permissions={a.permissions} /></TD>
+                  <TD><AccessSummary account={a} /></TD>
                   <TD><StatusCell account={a} /></TD>
                   <TD className="whitespace-nowrap text-sm text-slate-600">{a.last_login_at ? formatDateTime(a.last_login_at) : 'nunca'}</TD>
                   <TD className="text-right">
@@ -154,7 +168,7 @@ async function AdminAccounts({ session }) {
         <Card>
           <CardHeader
             title={<span className="inline-flex items-center gap-2"><UserPlus className="size-5 text-brand-600" aria-hidden="true" /> Novo acesso ao painel admin</span>}
-            description="A pessoa entra em tecnofix.pro/admin com o usuário e a senha abaixo e troca a senha no primeiro acesso."
+            description="A pessoa entra em tecnofix.pro/admin com o usuário e a senha abaixo, troca a senha no primeiro acesso e vê só as aplicações marcadas."
           />
           <CardContent>
             <ActionForm action={createAdminAccount} resetOnSuccess className="space-y-6">
@@ -179,7 +193,7 @@ async function AdminAccounts({ session }) {
   );
 }
 
-async function TestAccounts({ deleted, keptLogins }) {
+async function TestAccounts({ app, deleted, keptLogins }) {
   let tests = [];
   let setupMessage = null;
   try {
@@ -202,14 +216,14 @@ async function TestAccounts({ deleted, keptLogins }) {
 
       <Card className="mb-6">
         <CardHeader
-          title="Contas de teste da aplicação"
+          title={`Contas de teste do ${app.name}`}
           description="Ficam fora dos números, das listas de assistências e da planilha. Não têm cobrança e só elas podem ser excluídas."
         />
         {tests.length ? (
           <ul className="divide-y divide-slate-100">
             {tests.map((a) => (
               <li key={a.id}>
-                <Link href={`/admin/assistencias/${a.id}`} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-slate-50">
+                <Link href={`${app.base}/assistencias/${a.id}`} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-slate-50">
                   <span className="min-w-0">
                     <span className="flex flex-wrap items-center gap-2">
                       <span className="truncate font-medium text-slate-900">{a.name}</span>

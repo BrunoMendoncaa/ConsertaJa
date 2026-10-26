@@ -6,34 +6,39 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { logError } from '@/lib/logger';
-import { adminConfig, actionSession, getAdminSession, ADMIN_COOKIE, ADMIN_COOKIE_OPTIONS } from './session';
+import { adminConfig, actionSession, getAdminSession, selectAccounts, ADMIN_COOKIE, ADMIN_COOKIE_OPTIONS } from './session';
 import { signSession } from './token';
 import { hashPassword, passwordProblem, verifyPassword } from './password';
-import { normalizePermissions, USERNAME_RE, homeFor } from './permissions';
+import { normalizePermissions, normalizeApps, USERNAME_RE, homeFor } from './permissions';
 import { audit } from './audit';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SETUP_CODES = ['PGRST202', 'PGRST205', '42883', '42P01'];
 const SETUP_MESSAGE = 'Aplique a migration 0017 (acessos da área admin) no Supabase antes de criar acessos.';
+const APPS_SETUP_MESSAGE = 'Aplique a migration 20261026120000_admin_aplicacoes.sql no Supabase para escolher as aplicações de cada acesso.';
 
 const text = (formData, name, max) => String(formData.get(name) || '').trim().slice(0, max);
 
 function readAccountForm(formData) {
+  const apps = normalizeApps(formData.getAll('apps'));
   return {
     fullName: text(formData, 'full_name', 80),
-    permissions: normalizePermissions(formData.getAll('permissions')),
+    apps,
+    // Permissão de uma aplicação desmarcada não vale: fica de fora.
+    permissions: normalizePermissions(formData.getAll('permissions'), apps),
   };
 }
 
 async function loadAccount(db, id) {
   if (!UUID_RE.test(id)) return { account: null };
-  const { data, error } = await db.from('admin_accounts')
-    .select('id, username, full_name, permissions, active, session_version').eq('id', id).maybeSingle();
+  const { data, error } = await selectAccounts(db, 'id, username, full_name, permissions, apps, active, session_version',
+    (q) => q.eq('id', id).maybeSingle());
   if (error) throw error;
   return { account: data };
 }
 
 function failure(err, where) {
+  if (['42703', 'PGRST204'].includes(err?.code)) return { ok: false, error: APPS_SETUP_MESSAGE };
   if (SETUP_CODES.includes(err?.code)) return { ok: false, error: SETUP_MESSAGE };
   logError(where, err);
   return { ok: false, error: 'Não foi possível salvar agora. Tente de novo.' };
@@ -44,7 +49,7 @@ export async function createAdminAccount(_prev, formData) {
   const auth = await actionSession('master');
   if (auth.error) return { ok: false, error: auth.error };
 
-  const { fullName, permissions } = readAccountForm(formData);
+  const { fullName, apps, permissions } = readAccountForm(formData);
   const username = text(formData, 'username', 60).toLowerCase();
   const password = String(formData.get('password') || '');
   const fieldErrors = {};
@@ -57,7 +62,7 @@ export async function createAdminAccount(_prev, formData) {
 
   const db = createAdminClient();
   const { data, error } = await db.from('admin_accounts').insert({
-    username, full_name: fullName, password_hash: hashPassword(password), permissions,
+    username, full_name: fullName, password_hash: hashPassword(password), permissions, apps,
     must_change_password: true, created_by: auth.session.username,
   }).select('id').single();
   if (error) {
@@ -65,7 +70,7 @@ export async function createAdminAccount(_prev, formData) {
     return failure(error, 'admin.createAccount');
   }
 
-  await audit(db, auth.session.username, 'admin_create', null, { target: username, permissions });
+  await audit(db, auth.session.username, 'admin_create', null, { target: username, apps, permissions });
   revalidatePath('/admin/acessos');
   return { ok: true, message: `Acesso de ${fullName} criado. Passe o usuário e a senha para a pessoa: ela troca a senha no primeiro acesso.`, id: data.id };
 }
@@ -76,7 +81,7 @@ export async function updateAdminAccount(_prev, formData) {
   if (auth.error) return { ok: false, error: auth.error };
 
   const id = String(formData.get('id') || '');
-  const { fullName, permissions } = readAccountForm(formData);
+  const { fullName, apps, permissions } = readAccountForm(formData);
   const active = formData.get('active') === 'on';
   if (fullName.length < 2) return { ok: false, error: 'Informe o nome.', fieldErrors: { full_name: 'Informe o nome.' } };
 
@@ -84,15 +89,18 @@ export async function updateAdminAccount(_prev, formData) {
   try {
     const { account } = await loadAccount(db, id);
     if (!account) return { ok: false, error: 'Acesso não encontrado.' };
-    const patch = { full_name: fullName, permissions, active };
+    const patch = { full_name: fullName, permissions, apps, active };
     // Desativar derruba as sessões abertas na hora.
     if (account.active && !active) patch.session_version = account.session_version + 1;
     const { error } = await db.from('admin_accounts').update(patch).eq('id', id);
     if (error) return failure(error, 'admin.updateAccount');
 
-    const before = normalizePermissions(account.permissions);
+    const before = normalizePermissions(account.permissions, account.apps);
+    const appsBefore = normalizeApps(account.apps);
     await audit(db, auth.session.username, 'admin_update', null, {
       target: account.username,
+      apps_added: apps.filter((a) => !appsBefore.includes(a)),
+      apps_removed: appsBefore.filter((a) => !apps.includes(a)),
       added: permissions.filter((p) => !before.includes(p)),
       removed: before.filter((p) => !permissions.includes(p)),
       active: active === account.active ? undefined : active,

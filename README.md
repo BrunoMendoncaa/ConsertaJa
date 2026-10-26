@@ -30,7 +30,7 @@ supabase/
   seed.sql           2 assistências fictícias, usuários, OS em vários status, orçamentos e caixa
   tests/database/    240 testes pgTAP (isolamento entre tenants, OS, orçamento, portal, garantia, caixa, assinatura, área admin, acessos do site)
 src/
-  app/               rotas: site, login, onboarding, convite, /painel (equipe), /a/[slug] (portal do cliente) e /admin (dono do TecnoFix)
+  app/               rotas: site, login, onboarding, convite, /painel (equipe), /a/[slug] (portal do cliente) e /admin (central de aplicações do dono)
   features/          regra de negócio por domínio: actions.js (Server Actions), queries.js, components/
   components/        UI compartilhada e layout
   lib/               clientes Supabase, auth, sessão do portal, dinheiro, telefone, CPF/CNPJ, datas, erros
@@ -78,6 +78,7 @@ Quando chegar uma migration nova em `supabase/migrations/`, cole **só ela** no 
 | `20261021120000_acessos_admin.sql` | Acessos da área admin: contas criadas pela master, com permissões por funcionalidade (só o servidor lê e grava). |
 | `20261022120000_plano_gratis.sql` | Plano Grátis sem prazo: depois dos 14 dias de Pro, a conta fica no Grátis (até 30 OS por mês, sem convidar equipe, comprovante de garantia simples) em vez de travar. |
 | `20261023120000_contas_teste.sql` | Contas de teste da aplicação: criadas pela área admin (ou assistência marcada como teste), ficam fora dos números, têm o plano escolhido na admin (Pro ou Grátis), não assinam e podem ser excluídas com tudo o que têm. |
+| `20261026120000_admin_aplicacoes.sql` | Área admin como central de aplicações: cada acesso diz em quais aplicações entra (quem já tinha acesso continua no TecnoFix). |
 
 ## Assinatura do TecnoFix (Mercado Pago)
 
@@ -244,11 +245,15 @@ Link fixo no rodapé do menu do painel (`/painel/ajuda`). Cada pessoa vê só os
   - eles também veem um aviso em todas as telas;
   - técnicos e atendentes veem o aviso só no Dashboard.
 
-## Área admin (dono do TecnoFix)
+## Área admin (central de aplicações)
 
 Em `https://tecnofix.pro/admin`, fora do painel das assistências e sem link no app.
 
-**O que mostra:**
+A área admin é uma **central**: a tela inicial (`/admin`) mostra as aplicações que a conta pode abrir, cada uma com os números principais, e o seletor no topo troca de aplicação. Hoje a única é o TecnoFix, em `/admin/tecnofix` (visão geral, assistências, usuários e site). Os endereços antigos (`/admin/assistencias`, `/admin/site`...) levam para os novos.
+
+**Nova aplicação:** cadastre em `src/features/admin/apps.js` (nome, endereço, menu e permissões), crie as telas em `src/app/admin/(painel)/<chave>/` e o resumo da tela inicial em `src/features/admin/app-summaries.js`. Se a aplicação estiver em outro sistema, o resumo pode vir de uma API dela, com uma chave no `.env`.
+
+**O que mostra no TecnoFix:**
 - assistências, donos e equipe;
 - situação da assinatura e vencimento (fim do teste ou pago até);
 - receita mensal recorrente e o que foi recebido no mês;
@@ -271,13 +276,13 @@ Para configurar:
 
 **Para trocar a senha:** rode o comando de novo e substitua as 3 variáveis. As sessões abertas caem.
 
-### Acessos (conta master e permissões)
+### Acessos (conta master, aplicações e permissões)
 
-A conta das variáveis `ADMIN_*` é a **master**: pode tudo e é a única que abre a tela **Acessos** (`/admin/acessos`). Ela não fica no banco, então não dá para se trancar para fora.
+A conta das variáveis `ADMIN_*` é a **master**: pode tudo, em todas as aplicações, e é a única que abre a tela **Acessos** (`/admin/acessos`). Ela não fica no banco, então não dá para se trancar para fora.
 
-Acessos tem duas abas:
-- **Painel admin:** a master cria outros acessos à área admin (nome, usuário e senha inicial) e marca, numa caixa por funcionalidade, o que cada um pode ver e fazer; altera as permissões (valem no próximo clique da pessoa), desativa, redefine a senha ou exclui.
-- **Aplicação (contas de teste):** a master cria uma conta de teste pronta para usar (nome da assistência, nome da pessoa, e-mail, senha e plano Pro ou Grátis). O login já nasce confirmado e com a assistência criada; entra em `/entrar`.
+Acessos tem uma aba para os acessos ao painel admin e uma aba de contas de teste para cada aplicação que tem esse recurso:
+- **Painel admin:** a master cria outros acessos à área admin (nome, usuário e senha inicial), marca **em quais aplicações** a pessoa entra e, dentro de cada uma, numa caixa por funcionalidade, o que pode ver e fazer; altera aplicações e permissões (valem no próximo clique da pessoa), desativa, redefine a senha ou exclui. Sem nenhuma aplicação marcada, a pessoa só entra e troca a senha. Tirar uma aplicação tira também as permissões dela.
+- **TecnoFix · contas de teste:** a master cria uma conta de teste pronta para usar (nome da assistência, nome da pessoa, e-mail, senha e plano Pro ou Grátis). O login já nasce confirmado e com a assistência criada; entra em `/entrar`.
 
 **Contas de teste** (migration `20261023120000_contas_teste.sql`, pgTAP `11_contas_teste`):
 - não contam como assistência: ficam fora da visão geral, da lista de assistências, da planilha, dos usuários e dos números do Site;
@@ -285,7 +290,7 @@ Acessos tem duas abas:
 - na tela da conta de teste, a master troca o plano, troca a senha do login, faz a conta voltar a contar como assistência ou **exclui para sempre** (digitando o nome). A exclusão apaga OS, orçamentos, clientes, caixa, fotos e logo (pela API do Storage) e os logins que só existiam nela;
 - uma assistência criada pelo cadastro normal pode ser **marcada como conta de teste** na tela dela (só a master, e só sem assinatura vigente no Mercado Pago). Só contas de teste podem ser excluídas.
 
-Funcionalidades que podem ser liberadas (lista em `src/features/admin/permissions.js`):
+Funcionalidades do TecnoFix que podem ser liberadas (lista em `src/features/admin/apps.js`):
 - **Visão geral:** ver a visão geral; ver valores e pagamentos (receita, recebido no mês, valor dos planos, cobranças).
 - **Assistências:** ver assistências, donos e equipe; baixar a planilha; estender o teste; suspender e reativar; conferir no Mercado Pago. As ações exigem "ver assistências" (marcado sozinho).
 - **Usuários:** ver pessoas cadastradas.
@@ -293,7 +298,7 @@ Funcionalidades que podem ser liberadas (lista em `src/features/admin/permission
 
 Quem recebe um acesso troca a senha no primeiro login (e depois de uma redefinição) e pode trocá-la em **Minha senha**. O menu mostra só o que a conta pode abrir; páginas, ações, a planilha e os valores em R$ também são conferidos no servidor. Desativar, excluir ou redefinir a senha derruba a sessão aberta na hora.
 
-Para ativar: rode as migrations `20261021120000_acessos_admin.sql` e `20261023120000_contas_teste.sql` no SQL Editor do Supabase e faça o deploy.
+Para ativar: rode as migrations `20261021120000_acessos_admin.sql`, `20261023120000_contas_teste.sql` e `20261026120000_admin_aplicacoes.sql` no SQL Editor do Supabase e faça o deploy. (Sem a última, os acessos que já existem continuam funcionando no TecnoFix, mas não dá para escolher aplicações.)
 
 **Segurança:**
 - Sem as 3 variáveis, a área fica desligada.
@@ -305,7 +310,7 @@ Para ativar: rode as migrations `20261021120000_acessos_admin.sql` e `2026102312
 
 ## Acessos do site (tela "Site" na área admin)
 
-Em `/admin/site`: visitas da página inicial, do cadastro e do entrar.
+Em `/admin/tecnofix/site`: visitas da página inicial, do cadastro e do entrar.
 
 **O que mostra** (hoje, 7, 30 ou 90 dias):
 - visitas, visitantes, cliques nos botões de teste grátis, quem abriu o cadastro, novas contas e conversão;

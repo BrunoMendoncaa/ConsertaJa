@@ -134,7 +134,7 @@ export async function markAsTest(_prev, formData) {
   await audit(db, auth.session.username, 'test_mark', id, { plan });
   revalidatePath('/admin', 'layout');
   // O cartão da página muda (vira conta de teste): o aviso vai no topo, pela URL.
-  redirect(`/admin/assistencias/${id}?aviso=teste`);
+  redirect(`/admin/tecnofix/assistencias/${id}?aviso=teste`);
 }
 
 export async function unmarkTest(_prev, formData) {
@@ -152,7 +152,7 @@ export async function unmarkTest(_prev, formData) {
   if (error) { logError('admin.testAccount.unmark', error, { id }); return { ok: false, error: dbMessage(error, 'Não foi possível desfazer.') }; }
   await audit(db, auth.session.username, 'test_unmark', id, {});
   revalidatePath('/admin', 'layout');
-  redirect(`/admin/assistencias/${id}?aviso=real`);
+  redirect(`/admin/tecnofix/assistencias/${id}?aviso=real`);
 }
 
 // ---------------------------------------------------------------- Senha de um login da conta de teste
@@ -246,7 +246,7 @@ export async function deleteTestAccount(_prev, formData) {
   });
 
   revalidatePath('/admin', 'layout');
-  const params = new URLSearchParams({ tipo: 'aplicacao', excluida: a.name });
+  const params = new URLSearchParams({ tipo: 'tecnofix', excluida: a.name });
   if (kept.length) params.set('logins_mantidos', String(kept.length));
   redirect(`/admin/acessos?${params}`);
 }

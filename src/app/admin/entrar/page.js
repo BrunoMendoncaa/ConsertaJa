@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { Wrench, ShieldCheck } from 'lucide-react';
+import { LayoutGrid, ShieldCheck } from 'lucide-react';
 import { getAdminSession, adminConfig } from '@/features/admin/session';
 import { adminSignIn } from '@/features/admin/actions';
 import { ActionForm, SubmitButton } from '@/components/ui/action-form';
@@ -18,14 +18,14 @@ export default async function AdminLoginPage() {
     <main className="flex min-h-dvh items-center justify-center bg-slate-900 px-4 py-10">
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl sm:p-8">
         <div className="flex items-center gap-2 font-semibold text-slate-900">
-          <span className="inline-flex size-8 items-center justify-center rounded-lg bg-brand-600 text-white">
-            <Wrench className="size-4" aria-hidden="true" />
+          <span className="inline-flex size-8 items-center justify-center rounded-lg bg-slate-800 text-white">
+            <LayoutGrid className="size-4" aria-hidden="true" />
           </span>
-          <span>Tecno<span className="text-accent-500">Fix</span></span>
+          <span>Central</span>
           <span className="rounded bg-slate-900 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Admin</span>
         </div>
         <h1 className="mt-6 text-xl font-semibold text-slate-900">Área administrativa</h1>
-        <p className="mt-1 text-sm text-slate-500">Acesso restrito à equipe do TecnoFix.</p>
+        <p className="mt-1 text-sm text-slate-500">Acesso restrito. Acompanhe e gerencie as suas aplicações.</p>
 
         {configured ? (
           <ActionForm action={adminSignIn} className="mt-6 space-y-4">

@@ -1,6 +1,7 @@
 import 'server-only';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isTestUser } from './format';
+import { selectAccounts } from './session';
 
 // Leituras da área admin. Sempre com a chave secreta (ignora o RLS), por isso só
 // são chamadas depois de requireAdmin(). As funções admin_* vêm da migration 0015.
@@ -24,7 +25,7 @@ async function allAssistances() {
 
 /**
  * Assistências de verdade (clientes). Contas de teste (is_test, migration 0019) ficam
- * fora de todos os números, listas e da planilha: aparecem só em Acessos → Aplicação.
+ * fora de todos os números, listas e da planilha: aparecem só em Acessos → TecnoFix · contas de teste.
  */
 export async function listAssistances() {
   return (await allAssistances()).filter((a) => !a.is_test);
@@ -97,11 +98,11 @@ function checkAccounts(error, what) {
   throw new Error(`${what}: ${error.message}`);
 }
 
-const ACCOUNT_FIELDS = 'id, username, full_name, permissions, active, must_change_password, last_login_at, created_at, created_by, updated_at, password_changed_at';
+const ACCOUNT_FIELDS = 'id, username, full_name, permissions, apps, active, must_change_password, last_login_at, created_at, created_by, updated_at, password_changed_at';
 
 /** Contas de acesso à área admin (sem o hash da senha). */
 export async function listAdminAccounts() {
-  const { data, error } = await createAdminClient().from('admin_accounts').select(ACCOUNT_FIELDS).order('full_name');
+  const { data, error } = await selectAccounts(createAdminClient(), ACCOUNT_FIELDS, (q) => q.order('full_name'));
   checkAccounts(error, 'admin_accounts');
   return data || [];
 }
@@ -109,7 +110,7 @@ export async function listAdminAccounts() {
 export async function getAdminAccount(id) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id))) return null;
   const db = createAdminClient();
-  const { data, error } = await db.from('admin_accounts').select(ACCOUNT_FIELDS).eq('id', id).maybeSingle();
+  const { data, error } = await selectAccounts(db, ACCOUNT_FIELDS, (q) => q.eq('id', id).maybeSingle());
   checkAccounts(error, 'admin_accounts');
   if (!data) return null;
   const { data: log, error: logErr } = await db.from('admin_audit_log')

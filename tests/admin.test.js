@@ -2,8 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { hashPassword, newSessionSecret, passwordProblem } from '../scripts/admin-senha.mjs';
 import { verifyPassword, safeEqual, hashPassword as serverHash, passwordProblem as serverProblem, dummyHash } from '@/features/admin/password';
 import {
-  normalizePermissions, can, allowedSections, homeFor, PERMISSION_KEYS, USERNAME_RE,
+  normalizePermissions, normalizeApps, can, canApp, allowedApps, appSections, appHome, hubSections, homeFor,
+  permissionApp, PERMISSION_KEYS, USERNAME_RE,
 } from '@/features/admin/permissions';
+import { APPS, appFromPath, appPath } from '@/features/admin/apps';
 import { readAdminConfig, signSession, verifySession, SESSION_HOURS } from '@/features/admin/token';
 import {
   situation, situationKey, dueInfo, monthlyValue, matchesSituation, matchesQuery, relativeDays, toCsv, profileComplete,
@@ -139,22 +141,55 @@ describe('área admin: permissões', () => {
   });
 
   it('master pode tudo; conta só o marcado; sem sessão nada', () => {
-    const maria = { master: false, permissions: ['site_ver'] };
+    const maria = { master: false, apps: ['tecnofix'], permissions: ['site_ver'] };
     expect(can({ master: true, permissions: [] }, 'financeiro')).toBe(true);
     expect(can(maria, 'site_ver')).toBe(true);
     expect(can(maria, 'financeiro')).toBe(false);
     expect(can(null, 'site_ver')).toBe(false);
   });
 
-  it('menu e página inicial de cada conta', () => {
-    const master = { master: true, permissions: PERMISSION_KEYS };
-    expect(allowedSections(master).map((s) => s.href)).toEqual(['/admin', '/admin/assistencias', '/admin/usuarios', '/admin/site', '/admin/acessos']);
-    const maria = { master: false, permissions: ['site_ver', 'assistencias_ver'] };
-    expect(allowedSections(maria).map((s) => s.href)).toEqual(['/admin/assistencias', '/admin/site']);
-    expect(homeFor(maria)).toBe('/admin/assistencias');
-    expect(homeFor({ master: false, permissions: [] })).toBe('/admin/sem-acesso');
+  it('permissão só vale com a aplicação dela liberada', () => {
+    expect(permissionApp('assistencias_ver')).toBe('tecnofix');
+    const semApp = { master: false, apps: [], permissions: ['site_ver', 'assistencias_ver'] };
+    expect(canApp(semApp, 'tecnofix')).toBe(false);
+    expect(can(semApp, 'site_ver')).toBe(false);
+    expect(allowedApps(semApp)).toEqual([]);
+    expect(canApp({ master: true }, 'tecnofix')).toBe(true);
+    expect(canApp({ master: true }, 'outra')).toBe(false); // aplicação que não existe
+    // Ao salvar, permissões de aplicação desmarcada ficam de fora
+    expect(normalizePermissions(['site_ver', 'visao_geral'], [])).toEqual([]);
+    expect(normalizePermissions(['site_ver'], ['tecnofix'])).toEqual(['site_ver']);
+    expect(normalizeApps(['tecnofix', 'xpto', 'tecnofix', null])).toEqual(['tecnofix']);
+  });
+
+  it('cada permissão é de uma aplicação e as chaves não se repetem', () => {
+    expect(new Set(PERMISSION_KEYS).size).toBe(PERMISSION_KEYS.length);
+    for (const app of APPS) {
+      for (const s of app.sections) expect(permissionApp(s.permission)).toBe(app.key);
+    }
+  });
+
+  it('menu de cada aplicação, página inicial e central', () => {
+    const master = { master: true, apps: APPS.map((a) => a.key), permissions: PERMISSION_KEYS };
+    expect(appSections(master, 'tecnofix').map((s) => s.href)).toEqual(['/admin/tecnofix', '/admin/tecnofix/assistencias', '/admin/tecnofix/usuarios', '/admin/tecnofix/site']);
+    expect(hubSections(master).map((s) => s.href)).toEqual(['/admin', '/admin/acessos']);
+    const maria = { master: false, apps: ['tecnofix'], permissions: ['site_ver', 'assistencias_ver'] };
+    expect(appSections(maria, 'tecnofix').map((s) => s.href)).toEqual(['/admin/tecnofix/assistencias', '/admin/tecnofix/site']);
+    expect(appHome(maria, 'tecnofix')).toBe('/admin/tecnofix/assistencias');
+    expect(appHome({ master: false, apps: ['tecnofix'], permissions: [] }, 'tecnofix')).toBeNull();
+    expect(appHome({ master: false, apps: [], permissions: PERMISSION_KEYS }, 'tecnofix')).toBeNull();
+    // Depois de entrar, todo mundo cai na central
+    expect(homeFor(maria)).toBe('/admin');
     // Conta com todas as permissões continua sem a tela Acessos (é só da master).
-    expect(allowedSections({ master: false, permissions: PERMISSION_KEYS }).some((s) => s.href === '/admin/acessos')).toBe(false);
+    expect(hubSections({ master: false, apps: ['tecnofix'], permissions: PERMISSION_KEYS }).some((s) => s.href === '/admin/acessos')).toBe(false);
+  });
+
+  it('endereço de cada aplicação', () => {
+    expect(appPath('tecnofix', '/site')).toBe('/admin/tecnofix/site');
+    expect(appFromPath('/admin/tecnofix/assistencias/1')?.key).toBe('tecnofix');
+    expect(appFromPath('/admin/tecnofix')?.key).toBe('tecnofix');
+    expect(appFromPath('/admin/tecnofixo')).toBeNull();
+    expect(appFromPath('/admin/acessos')).toBeNull();
   });
 });
 

@@ -58,7 +58,7 @@ export default async function AdminAssistancesPage({ searchParams }) {
     const p = new URLSearchParams({ situacao: filter, ...(q ? { q } : {}), ordem: sort, ...extra });
     return `?${p.toString()}`;
   };
-  const csvHref = `/admin/exportar?${new URLSearchParams({ situacao: filter, ...(q ? { q } : {}), ordem: sort }).toString()}`;
+  const csvHref = `/admin/tecnofix/exportar?${new URLSearchParams({ situacao: filter, ...(q ? { q } : {}), ordem: sort }).toString()}`;
 
   return (
     <>
@@ -95,7 +95,7 @@ export default async function AdminAssistancesPage({ searchParams }) {
             <ul className="divide-y divide-slate-100 lg:hidden">
               {rows.map((a) => (
                 <li key={a.id}>
-                  <Link href={`/admin/assistencias/${a.id}`} className="block px-4 py-3 active:bg-slate-50">
+                  <Link href={`/admin/tecnofix/assistencias/${a.id}`} className="block px-4 py-3 active:bg-slate-50">
                     <div className="flex items-start justify-between gap-3">
                       <span className="min-w-0">
                         <span className="block font-medium text-slate-900">{a.name}</span>
@@ -120,7 +120,7 @@ export default async function AdminAssistancesPage({ searchParams }) {
                   {rows.map((a) => (
                     <tr key={a.id} className="align-top">
                       <TD>
-                        <Link href={`/admin/assistencias/${a.id}`} className="font-medium text-slate-900 hover:text-brand-700">{a.name}</Link>
+                        <Link href={`/admin/tecnofix/assistencias/${a.id}`} className="font-medium text-slate-900 hover:text-brand-700">{a.name}</Link>
                         <p className="text-xs text-slate-500">/{a.slug} · criada em {formatDate(a.created_at)}</p>
                       </TD>
                       <TD>

@@ -5,6 +5,7 @@ import { formatDate } from '@/lib/dates';
 import { formatPhone, whatsappLink } from '@/lib/phone';
 import { situation, dueInfo, relativeDays } from '@/features/admin/format';
 import { cn } from '@/lib/cn';
+import { getApp } from '@/features/admin/apps';
 
 export function SituationBadge({ assistance }) {
   const s = situation(assistance);
@@ -69,6 +70,7 @@ export const ACTION_LABELS = {
 };
 
 const PLAN_NAMES = { pro: 'Pro', free: 'Grátis' };
+const appName = (key) => getApp(key)?.name || key;
 
 export function actionDetail(row) {
   const d = row.details || {};
@@ -77,6 +79,8 @@ export function actionDetail(row) {
   if (row.action === 'reactivate') return d.restored_status ? `voltou para ${STATUS_LABELS[d.restored_status] || d.restored_status}` : '';
   if (row.action === 'admin_update') {
     const parts = [d.target];
+    if (d.apps_added?.length) parts.push(`+ ${d.apps_added.map(appName).join(', ')}`);
+    if (d.apps_removed?.length) parts.push(`- ${d.apps_removed.map(appName).join(', ')}`);
     if (d.added?.length) parts.push(`+${d.added.length} permissão(ões)`);
     if (d.removed?.length) parts.push(`-${d.removed.length} permissão(ões)`);
     if (d.active === false) parts.push('desativado');

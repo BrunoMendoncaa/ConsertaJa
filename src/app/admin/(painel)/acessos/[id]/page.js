@@ -10,7 +10,7 @@ import { getAdminAccount, AccountsSetupError } from '@/features/admin/queries';
 import { updateAdminAccount, resetAdminPassword, deleteAdminAccount } from '@/features/admin/account-actions';
 import { PermissionPicker } from '@/features/admin/components/permission-picker';
 import { ACTION_LABELS, actionDetail } from '@/features/admin/components/bits';
-import { normalizePermissions } from '@/features/admin/permissions';
+import { normalizePermissions, normalizeApps } from '@/features/admin/permissions';
 import { formatDateTime } from '@/lib/dates';
 
 export const metadata = { title: 'Editar acesso' };
@@ -46,7 +46,7 @@ export default async function AdminAccessEditPage({ params }) {
 
       <div className="grid gap-6 xl:grid-cols-3">
         <Card className="h-fit xl:col-span-2">
-          <CardHeader title="Nome e permissões" description="As mudanças valem no próximo clique da pessoa, sem precisar sair e entrar." />
+          <CardHeader title="Nome, aplicações e permissões" description="As mudanças valem no próximo clique da pessoa, sem precisar sair e entrar." />
           <CardContent>
             <ActionForm action={updateAdminAccount} className="space-y-6">
               <input type="hidden" name="id" value={account.id} />
@@ -62,7 +62,7 @@ export default async function AdminAccessEditPage({ params }) {
                   </label>
                 </div>
               </div>
-              <PermissionPicker value={normalizePermissions(account.permissions)} idPrefix="editar" />
+              <PermissionPicker value={normalizePermissions(account.permissions, account.apps)} apps={normalizeApps(account.apps)} idPrefix="editar" />
               <SubmitButton pendingText="Salvando...">Salvar acesso</SubmitButton>
             </ActionForm>
           </CardContent>
