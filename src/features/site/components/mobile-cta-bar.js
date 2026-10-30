@@ -36,7 +36,7 @@ export function MobileCtaBar({ watchId, whatsappHref }) {
         <Link
           href="/cadastro"
           data-track="barra-teste-gratis"
-          className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 text-base font-semibold text-white shadow-sm hover:bg-brand-700"
+          className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-accent-500 px-4 text-base font-bold text-slate-900 shadow-sm hover:bg-accent-600"
         >
           Criar conta grátis <ArrowRight className="size-4" aria-hidden="true" />
         </Link>

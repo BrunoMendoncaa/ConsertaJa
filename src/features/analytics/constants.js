@@ -34,6 +34,9 @@ export const CTA_LABELS = {
   'barra-whatsapp': 'Barra do celular: WhatsApp',
   'duvidas-whatsapp': 'Perguntas: Chamar no WhatsApp',
   'rodape-teste-gratis': 'Final da página: Criar conta grátis',
+  'hero-passo-1': 'Topo: tocou no passo 1 do vídeo',
+  'hero-passo-2': 'Topo: tocou no passo 2 do vídeo',
+  'hero-passo-3': 'Topo: tocou no passo 3 do vídeo',
 };
 
 // Botões que levam ao cadastro (contam como "clicou em teste grátis").

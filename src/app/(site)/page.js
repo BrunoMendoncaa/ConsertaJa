@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import {
   ClipboardList, Camera, FileText, Smartphone, Wallet, ShieldCheck, ArrowRight, CircleCheck,
-  BadgeCheck, CalendarClock, ListChecks, Printer, MessageCircle, Sparkles, Check,
+  BadgeCheck, CalendarClock, ListChecks, Printer, MessageCircle, Wrench,
 } from 'lucide-react';
 import { Logo } from '@/components/layout/logo';
 import { ButtonLink } from '@/components/ui/button';
@@ -9,9 +9,17 @@ import { PLANS, TRIAL_DAYS, FREE_OS_LIMIT } from '@/lib/billing';
 import { SiteTracker } from '@/features/analytics/components/site-tracker';
 import { MobileCtaBar } from '@/features/site/components/mobile-cta-bar';
 import { CampaignNote } from '@/features/site/components/campaign-note';
+import { HeroDemo } from '@/features/site/components/hero-demo';
 import { whatsappLink } from '@/lib/contact';
 
 const WHATSAPP = whatsappLink();
+
+// Vídeo do topo (public/site/demo-sistema.mp4): onde começa cada passo, em segundos.
+const DEMO_STEPS = [
+  { at: 0, title: 'Você abre a OS', text: 'Em 1 minuto, no celular ou no computador.' },
+  { at: 6.77, title: 'O cliente aprova pelo celular', text: 'Pelo link, sem ligação.' },
+  { at: 13.47, title: 'A garantia sai pronta', text: 'Na entrega do aparelho.' },
+];
 const monthly = PLANS.monthly;
 const yearly = PLANS.yearly;
 
@@ -75,50 +83,63 @@ export default function LandingPage() {
   return (
     <div className="bg-white">
       <SiteTracker />
-      <header className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-5 sm:px-6">
+      <header className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-5">
         <Logo />
         <nav className="flex items-center gap-1 sm:gap-2">
           <ButtonLink href="/entrar" variant="ghost" size="sm" className="sm:h-10 sm:px-4" data-track="topo-entrar">Entrar</ButtonLink>
-          <ButtonLink href="/cadastro" size="sm" className="sm:h-10 sm:px-4" data-track="topo-criar-conta"><span>Criar conta<span className="hidden sm:inline"> grátis</span></span></ButtonLink>
+          <ButtonLink href="/cadastro" size="sm" className="whitespace-nowrap sm:h-10 sm:px-4" data-track="topo-criar-conta"><span>Criar conta<span className="hidden sm:inline"> grátis</span></span></ButtonLink>
         </nav>
       </header>
 
-      {/* ------------------------------------------------------------ Topo */}
+      {/* ------------------------------------------------------------ Topo
+          Pensado para a primeira tela do celular (navegador do Facebook/Instagram): chamada para o
+          dono de assistência (a mesma dos anúncios), o título, o sistema funcionando e o botão. */}
       <section className="relative overflow-hidden">
         <div aria-hidden="true" className="pointer-events-none absolute -right-40 -top-40 size-[36rem] rounded-full bg-brand-100/60 blur-3xl" />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 pb-16 pt-4 sm:pb-20 sm:pt-10 lg:grid-cols-[1.15fr_1fr]">
-          <div>
-            <p className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200">
-              <Sparkles className="size-3.5" aria-hidden="true" /> Grátis para sempre · sem cartão
+        <div className="relative mx-auto grid max-w-6xl gap-x-12 px-4 pb-12 pt-2 sm:px-6 sm:pb-20 sm:pt-8 lg:grid-cols-[1.05fr_1fr] lg:items-center">
+          <div className="lg:col-start-1 lg:row-start-1 lg:self-end">
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-accent-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-accent-600 ring-1 ring-accent-500/30">
+              <Wrench className="size-3.5" aria-hidden="true" /> Para donos de assistência técnica
             </p>
-            <h1 className="mt-4 text-[2rem] font-semibold leading-[1.15] tracking-tight text-slate-900 sm:mt-5 sm:text-5xl sm:leading-tight">
-              Chega de OS no caderno e orçamento perdido no WhatsApp.
+            <h1 className="mt-3 text-[1.85rem] font-bold leading-[1.12] tracking-tight text-slate-900 max-[359px]:text-[1.6rem] sm:mt-5 sm:text-5xl sm:leading-[1.08]">
+              Sistema de OS <span className="text-accent-600">grátis</span> para a sua assistência.
             </h1>
-            <p className="mt-4 text-base leading-relaxed text-slate-600 sm:mt-5 sm:text-lg">
-              O TecnoFix é o sistema grátis da sua assistência técnica: abra a OS em 1 minuto, mande o orçamento que o cliente aprova pelo celular e entregue com garantia.
+            <p className="mt-4 hidden text-lg leading-relaxed text-slate-600 sm:block">
+              Abra a OS, mande o orçamento que o cliente aprova pelo celular e entregue com garantia. Sem prazo e sem cartão.
             </p>
-            <div className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap">
-              <ButtonLink id="cta-principal" href="/cadastro" size="lg" className="w-full font-semibold sm:w-auto" data-track="hero-teste-gratis">
-                Criar conta grátis <ArrowRight className="size-4" aria-hidden="true" />
-              </ButtonLink>
-              <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" data-track="hero-whatsapp"
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-emerald-600 bg-white px-6 text-base font-medium text-emerald-800 hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 sm:w-auto">
-                <MessageCircle className="size-5" aria-hidden="true" /> Tirar dúvida no WhatsApp
-              </a>
-            </div>
-            <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-slate-600">
-              {['Grátis, sem prazo', 'Sem cartão de crédito', 'Pronto em 2 minutos'].map((t) => (
-                <li key={t} className="flex items-center gap-1.5"><CircleCheck className="size-4 shrink-0 text-emerald-600" aria-hidden="true" />{t}</li>
-              ))}
-            </ul>
-            <CampaignNote />
           </div>
 
-          <div className="relative mx-auto w-full max-w-[16rem] sm:max-w-xs lg:max-w-[20rem]">
-            <Phone src="/site/cliente-aprova.webp" alt="Tela do cliente aprovando o orçamento pelo celular" priority className="rotate-2" />
-            <div className="absolute -right-3 top-[56%] flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-900/20">
-              <Check className="size-4" aria-hidden="true" /> Orçamento aprovado
+          <div className="mt-5 max-[359px]:mt-3 sm:mt-8 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mt-0">
+            <HeroDemo
+              src="/site/demo-sistema.mp4"
+              webm="/site/demo-sistema.webm"
+              poster="/site/demo-sistema-poster.webp"
+              steps={DEMO_STEPS}
+              label="Vídeo do TecnoFix: abrindo uma OS no celular, o cliente aprovando o orçamento e a garantia pronta"
+            />
+          </div>
+
+          <div className="mt-5 max-[359px]:mt-3 sm:mt-8 lg:col-start-1 lg:row-start-2 lg:self-start">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
+              <Link id="cta-principal" href="/cadastro" data-track="hero-teste-gratis"
+                className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-accent-500 px-7 text-lg font-bold text-slate-900 shadow-lg shadow-accent-500/30 transition-colors hover:bg-accent-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-600 sm:w-auto">
+                Criar conta grátis <ArrowRight className="size-5" aria-hidden="true" />
+              </Link>
+              <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" data-track="hero-whatsapp"
+                className="hidden items-center gap-2 text-sm font-medium text-emerald-700 underline-offset-4 hover:underline sm:inline-flex">
+                <MessageCircle className="size-4" aria-hidden="true" /> Dúvidas? Fale no WhatsApp
+              </a>
             </div>
+            <p className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-slate-600 sm:text-sm">
+              {['Leva 2 minutos', 'Só nome, e-mail e senha', 'Sem cartão'].map((t) => (
+                <span key={t} className="inline-flex items-center gap-1"><CircleCheck className="size-3.5 shrink-0 text-emerald-600" aria-hidden="true" />{t}</span>
+              ))}
+            </p>
+            <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" data-track="hero-whatsapp"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-emerald-700 sm:hidden">
+              <MessageCircle className="size-4" aria-hidden="true" /> Dúvidas? Fale no WhatsApp
+            </a>
+            <CampaignNote />
           </div>
         </div>
       </section>
@@ -143,9 +164,10 @@ export default function LandingPage() {
             ))}
           </ol>
           <div className="mt-12 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-5">
-            <ButtonLink href="/cadastro" size="lg" className="w-full font-semibold sm:w-auto" data-track="meio-teste-gratis">
+            <Link href="/cadastro" data-track="meio-teste-gratis"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent-500 px-6 text-base font-bold text-slate-900 shadow-md shadow-accent-500/25 hover:bg-accent-600 sm:w-auto">
               Criar conta grátis <ArrowRight className="size-4" aria-hidden="true" />
-            </ButtonLink>
+            </Link>
             <p className="text-sm text-slate-600">Sem cartão. Os {TRIAL_DAYS} primeiros dias têm tudo liberado.</p>
           </div>
         </div>

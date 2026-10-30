@@ -9,7 +9,18 @@ const NAMED_SOURCES = {
   tiktok: 'TikTok',
   email: 'E-mail',
   portal: 'Portal do cliente',
+  // Valores que o Gerenciador de Anúncios do Meta coloca em utm_source ({{site_source_name}}).
+  fb: 'Facebook (anúncio)',
+  ig: 'Instagram (anúncio)',
+  an: 'Audience Network (anúncio)',
+  msg: 'Messenger (anúncio)',
 };
+
+/** Número de campanha/anúncio do Meta (ex.: 120252867088050116) fica curto: "nº …050116". */
+function campaignLabel(c) {
+  const v = String(c);
+  return /^\d{12,}$/.test(v) ? `nº …${v.slice(-6)}` : v;
+}
 
 /** Nome do site de origem a partir do host (google.com.br -> Google). */
 export function sourceFromHost(host) {
@@ -48,7 +59,7 @@ export function originOf(e) {
   if (e.utm_source) {
     const key = String(e.utm_source).toLowerCase();
     const name = NAMED_SOURCES[key] || e.utm_source;
-    return e.utm_campaign ? `${name} · ${e.utm_campaign}` : name;
+    return e.utm_campaign ? `${name} · ${campaignLabel(e.utm_campaign)}` : name;
   }
   const fromHost = sourceFromHost(e.referrer_host);
   if (fromHost) return fromHost;

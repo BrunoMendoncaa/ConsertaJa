@@ -71,6 +71,10 @@ describe('acessos do site: evento recebido', () => {
     expect(a.row).toMatchObject({ p_path: '/anuncio', p_utm_source: 'facebook', p_utm_campaign: 'anuncio' });
     expect(g.row).toMatchObject({ p_path: '/grupos', p_utm_source: 'facebook', p_utm_campaign: 'grupos' });
     expect(originOf({ utm_source: 'facebook', utm_campaign: 'grupos' })).toBe('Facebook · grupos');
+    // Anúncio do Meta com parâmetros automáticos (posicionamento + número do anúncio)
+    expect(originOf({ utm_source: 'fb', utm_campaign: '120252867088050116' })).toBe('Facebook (anúncio) · nº …050116');
+    expect(originOf({ utm_source: 'ig', utm_campaign: 'dono-feed' })).toBe('Instagram (anúncio) · dono-feed');
+    expect(originOf({ utm_source: 'an' })).toBe('Audience Network (anúncio)');
   });
 
   it('o código do visitante muda de um dia para o outro', () => {
