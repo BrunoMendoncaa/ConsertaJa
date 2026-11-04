@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useRef, useState, useTransition } from 'react';
-import { LoaderCircle } from 'lucide-react';
+import { CircleAlert, CircleCheck, LoaderCircle } from 'lucide-react';
 import { Alert } from './alert';
 import { buttonClasses } from './button';
 import { cn } from '@/lib/cn';
@@ -17,8 +17,9 @@ export function useActionFormState() {
  * - Mostra o erro geral e a mensagem de sucesso devolvidos pela action.
  * - Mantém o que o usuário digitou quando há erro (não reseta o formulário).
  * - A action pode chamar redirect() normalmente.
+ * - feedback="inline": a mensagem aparece pequena, numa linha embaixo do botão (para tabelas e listas).
  */
-export function ActionForm({ action, children, className, resetOnSuccess = false, confirm, onSuccess, id }) {
+export function ActionForm({ action, children, className, resetOnSuccess = false, confirm, onSuccess, id, feedback = 'alert' }) {
   const [state, setState] = useState(null);
   const [pending, startTransition] = useTransition();
   const formRef = useRef(null);
@@ -41,16 +42,26 @@ export function ActionForm({ action, children, className, resetOnSuccess = false
   return (
     <FormStateContext.Provider value={{ state, pending }}>
       <form ref={formRef} id={id} onSubmit={handleSubmit} className={className} noValidate>
-        {state?.error && (
+        {feedback === 'alert' && state?.error && (
           <Alert variant="error" className="col-span-full mb-4">
             {state.error}
             {state.ref && <span className="ml-1 text-xs opacity-70">(código {state.ref})</span>}
           </Alert>
         )}
-        {state?.ok && state?.message && (
+        {feedback === 'alert' && state?.ok && state?.message && (
           <Alert variant="success" className="col-span-full mb-4">{state.message}</Alert>
         )}
         {children}
+        {feedback === 'inline' && !pending && state?.error && (
+          <p role="alert" className="mt-1 flex items-start gap-1 text-xs font-medium text-red-700">
+            <CircleAlert className="mt-px size-3.5 shrink-0" aria-hidden="true" /> {state.error}
+          </p>
+        )}
+        {feedback === 'inline' && !pending && state?.ok && state?.message && (
+          <p role="status" className="mt-1 flex items-start gap-1 text-xs font-medium text-emerald-700">
+            <CircleCheck className="mt-px size-3.5 shrink-0" aria-hidden="true" /> {state.message}
+          </p>
+        )}
       </form>
     </FormStateContext.Provider>
   );

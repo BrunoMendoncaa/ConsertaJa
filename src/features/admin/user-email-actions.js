@@ -9,7 +9,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { SITE_URL } from '@/lib/supabase/env';
 import { sendEmail, emailConfigured, emailErrorMessage, EMAIL_SETUP_MESSAGE } from '@/lib/email';
 import { logError } from '@/lib/logger';
-import { formatDateTime } from '@/lib/dates';
+import { formatTime } from '@/lib/dates';
 import { actionSession } from './session';
 import { audit } from './audit';
 import { USER_EMAILS, USER_EMAIL_COOLDOWN_MS, userEmailKind, userEmailContent, entryLink } from './user-emails';
@@ -59,7 +59,8 @@ export async function sendUserEmail(_prev, formData) {
     return { ok: false, error: 'Não foi possível conferir os envios anteriores. Tente de novo.' };
   }
   if (recent?.length) {
-    return { ok: false, error: `Este e-mail já foi enviado em ${formatDateTime(recent[0].created_at)} (${recent[0].admin_username}). Espere 1 hora para mandar de novo.` };
+    const again = new Date(new Date(recent[0].created_at).getTime() + USER_EMAIL_COOLDOWN_MS);
+    return { ok: false, error: `Enviado há menos de 1 hora. Pode reenviar a partir das ${formatTime(again)}.` };
   }
 
   // Link de uso único do Supabase Auth (não manda e-mail sozinho). Só para quem já existe:
@@ -82,5 +83,5 @@ export async function sendUserEmail(_prev, formData) {
 
   await audit(db, auth.session.username, USER_EMAILS[kind].action, null, { user_id: userId, email: user.email, name, email_id: sent.id });
   revalidatePath('/admin/tecnofix/usuarios');
-  return { ok: true, message: `E-mail enviado para ${user.email}.` };
+  return { ok: true, message: 'E-mail enviado.' };
 }

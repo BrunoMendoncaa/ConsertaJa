@@ -32,17 +32,22 @@ const FILTERS = [
 
 const SENT_LABEL = Object.fromEntries(Object.values(USER_EMAILS).map((e) => [e.action, e.sentLabel]));
 
-/** Botão do e-mail que cabe para a pessoa (confirmação ou lembrete da assistência) e o último envio. */
-function EmailAction({ user, last }) {
+/**
+ * Botão do e-mail que cabe para a pessoa (confirmação ou lembrete da assistência), com o
+ * resultado e o último envio em letra pequena embaixo (sem caixa de aviso, para caber na coluna).
+ */
+function EmailAction({ user, last, className }) {
   const kind = userEmailKind(user);
   if (!kind) return null;
   const info = USER_EMAILS[kind];
-  const lastText = last ? `Último e-mail (${SENT_LABEL[last.action] || 'e-mail'}): ${formatDateTime(last.at)} · ${last.by}` : null;
+  const lastKind = last && last.action !== info.action ? ` (${SENT_LABEL[last.action] || 'e-mail'})` : '';
+  const lastText = last ? `Último${lastKind}: ${formatDateTime(last.at)} · ${last.by}` : null;
   return (
-    <ActionForm action={sendUserEmail} className="mt-2" confirm={`${info.confirm(user.email)}${lastText ? `\n\n${lastText}` : ''}`}>
+    <ActionForm action={sendUserEmail} feedback="inline" className={className}
+      confirm={`${info.confirm(user.email)}${lastText ? `\n\n${lastText}` : ''}`}>
       <input type="hidden" name="user_id" value={user.id} />
       <input type="hidden" name="kind" value={kind} />
-      <SubmitButton size="sm" variant="outline" pendingText="Enviando..." data-email={kind}>
+      <SubmitButton size="sm" variant="outline" pendingText="Enviando..." data-email={kind} className="whitespace-nowrap">
         <Mail className="size-4" aria-hidden="true" /> {info.button}
       </SubmitButton>
       {lastText && <p className="mt-1 text-xs text-slate-500">{lastText}</p>}
@@ -119,14 +124,14 @@ export default async function AdminUsersPage({ searchParams }) {
                     {!u.memberships.length && <Badge tone="amber">Sem assistência</Badge>}
                     {!u.email_confirmed_at && <Badge tone="orange">E-mail não confirmado</Badge>}
                   </div>
-                  {canEmail && <EmailAction user={u} last={sent[u.id]} />}
+                  {canEmail && <EmailAction user={u} last={sent[u.id]} className="mt-2" />}
                   <p className="mt-1 text-xs text-slate-500">desde {formatDate(u.created_at)} · último acesso {u.last_sign_in_at ? formatDateTime(u.last_sign_in_at) : 'nunca'}</p>
                 </li>
               ))}
             </ul>
             <div className="hidden md:block">
               <Table>
-                <THead><tr><TH>Pessoa</TH><TH>Assistências</TH><TH>Cadastro</TH><TH>Último acesso</TH></tr></THead>
+                <THead><tr><TH>Pessoa</TH><TH>Assistências</TH><TH>Cadastro</TH><TH>Último acesso</TH>{canEmail && <TH>E-mail</TH>}</tr></THead>
                 <TBody>
                   {rows.map((u) => (
                     <tr key={u.id} className="align-top">
@@ -146,13 +151,13 @@ export default async function AdminUsersPage({ searchParams }) {
                           ))}
                           {!u.memberships.length && <Badge tone="amber">Sem assistência</Badge>}
                         </div>
-                        {canEmail && <EmailAction user={u} last={sent[u.id]} />}
                       </TD>
                       <TD>
                         <p>{formatDate(u.created_at)}</p>
                         {!u.email_confirmed_at && <p className="text-xs text-orange-700">e-mail não confirmado</p>}
                       </TD>
                       <TD>{u.last_sign_in_at ? formatDateTime(u.last_sign_in_at) : <span className="text-slate-400">nunca</span>}</TD>
+                      {canEmail && <TD className="w-60"><EmailAction user={u} last={sent[u.id]} /></TD>}
                     </tr>
                   ))}
                 </TBody>

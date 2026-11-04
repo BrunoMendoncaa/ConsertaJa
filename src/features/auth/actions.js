@@ -86,7 +86,7 @@ export async function signUp(_prev, formData) {
 
   return {
     ok: true,
-    message: `Enviamos um link de confirmação para ${parsed.data.email}. Abra o e-mail neste mesmo navegador para continuar. Se não aparecer em alguns minutos, confira a caixa de spam.`,
+    message: `Enviamos um link de confirmação para ${parsed.data.email}. Abra o e-mail (pode ser no celular) e clique em "Confirmar e-mail". Se não aparecer em alguns minutos, confira a caixa de spam.`,
   };
 }
 

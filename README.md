@@ -270,7 +270,7 @@ A área admin é uma **central**: a tela inicial (`/admin`) mostra as aplicaçõ
 
 **E-mails para quem parou no cadastro** (Admin → TecnoFix → Usuários). Cada pessoa mostra o botão que cabe para ela:
 - **Reenviar confirmação:** criou a conta e não confirmou o e-mail;
-- **Lembrar de cadastrar a assistência:** confirmou, mas não criou a assistência.
+- **Lembrar da assistência:** confirmou, mas não criou a assistência.
 
 Os dois e-mails têm um botão que entra direto na conta (link de uso único do Supabase Auth, que também confirma o e-mail) e leva para o cadastro da assistência, em qualquer navegador. O servidor confere a situação da pessoa antes de enviar, o mesmo e-mail só sai de novo depois de 1 hora e cada envio fica no histórico (`admin_audit_log`), com o último envio aparecendo na lista. O link vale pelo tempo de "Email OTP Expiration" do Supabase (Authentication → Providers → Email; o padrão é 1 hora).
 

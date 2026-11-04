@@ -15,7 +15,7 @@ export const USER_EMAILS = {
   },
   assistencia: {
     action: 'user_onboarding_email',
-    button: 'Lembrar de cadastrar a assistência',
+    button: 'Lembrar da assistência',
     sentLabel: 'lembrete da assistência',
     confirm: (email) => `Mandar para ${email} um e-mail lembrando de cadastrar a assistência?`,
   },
