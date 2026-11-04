@@ -11,6 +11,7 @@ import {
   situation, situationKey, dueInfo, monthlyValue, matchesSituation, matchesQuery, relativeDays, toCsv, profileComplete,
   isTestUser,
 } from '@/features/admin/format';
+import { userEmailKind, entryLink, firstName, userEmailContent, USER_EMAIL_ACTIONS } from '@/features/admin/user-emails';
 
 const DAY = 86400000;
 const iso = (offsetDays) => new Date(Date.now() + offsetDays * DAY).toISOString();
@@ -286,5 +287,58 @@ describe('área admin: busca, cadastro e planilha', () => {
     expect(csv).toContain('Nome;Obs\r\n');
     expect(csv).toContain('"Loja ""A""";"x;y"\r\n');
     expect(csv).toContain('B;\r\n');
+  });
+});
+
+describe('área admin: e-mails para quem parou no cadastro', () => {
+  it('escolhe o e-mail pela situação da pessoa', () => {
+    expect(userEmailKind({ email: 'a@b.com', email_confirmed_at: null, memberships: [] })).toBe('confirmar');
+    expect(userEmailKind({ email: 'a@b.com', email_confirmed_at: iso(-1), memberships: [] })).toBe('assistencia');
+    expect(userEmailKind({ email: 'a@b.com', email_confirmed_at: iso(-1) })).toBe('assistencia');
+    expect(userEmailKind({ email: 'a@b.com', email_confirmed_at: iso(-1), memberships: [{ assistance_id: 'x' }] })).toBeNull();
+    expect(userEmailKind({ email: '', email_confirmed_at: null })).toBeNull();
+    expect(userEmailKind(null)).toBeNull();
+  });
+
+  it('o botão leva para /auth/confirm com o token e segue para o cadastro da assistência', () => {
+    const url = new URL(entryLink('https://tecnofix.pro/', { hashedToken: 'abc&123', type: 'magiclink' }));
+    expect(url.origin + url.pathname).toBe('https://tecnofix.pro/auth/confirm');
+    expect(url.searchParams.get('token_hash')).toBe('abc&123');
+    expect(url.searchParams.get('type')).toBe('magiclink');
+    expect(url.searchParams.get('next')).toBe('/onboarding');
+  });
+
+  it('primeiro nome sem nada estranho', () => {
+    expect(firstName('  Ana Paula Souza ')).toBe('Ana');
+    expect(firstName('João')).toBe('João');
+    expect(firstName('<script>alert(1)</script>')).toBe('scriptalertscript');
+    expect(firstName('X')).toBe('');
+    expect(firstName(null)).toBe('');
+  });
+
+  it('conteúdo: assunto certo, link no botão e HTML escapado', () => {
+    const link = 'https://tecnofix.pro/auth/confirm?token_hash=t1&type=magiclink&next=%2Fonboarding';
+    const c = userEmailContent('confirmar', { name: 'Ana <b>Souza</b>', link, siteUrl: 'https://tecnofix.pro' });
+    expect(c.subject).toMatch(/confirmar seu e-mail/i);
+    expect(c.html).toContain('href="https://tecnofix.pro/auth/confirm?token_hash=t1&amp;type=magiclink&amp;next=%2Fonboarding"');
+    expect(c.html).toContain('Olá, Ana!');
+    expect(c.html).not.toContain('<b>');
+    expect(c.text).toContain(`Confirmar e-mail: ${link}`);
+    expect(c.html).toMatch(/grátis, sem prazo e sem cartão/);
+    expect(c.html).not.toMatch(/14 dias/);
+
+    const r = userEmailContent('assistencia', { name: '', link, siteUrl: 'https://tecnofix.pro' });
+    expect(r.subject).toMatch(/cadastrar sua assistência/i);
+    expect(r.html).toContain('Olá! Você já tem conta');
+    expect(r.text).toContain('tecnofix.pro/entrar');
+    expect(r.html).toContain('https://wa.me/5511993020625');
+  });
+
+  it('cada tipo tem ação própria no histórico e a permissão exige ver usuários', () => {
+    expect(new Set(USER_EMAIL_ACTIONS).size).toBe(2);
+    expect(normalizePermissions('usuarios_emails')).toEqual(['usuarios_ver', 'usuarios_emails']);
+    expect(permissionApp('usuarios_emails')).toBe('tecnofix');
+    expect(can({ master: false, apps: ['tecnofix'], permissions: ['usuarios_ver'] }, 'usuarios_emails')).toBe(false);
+    expect(can({ master: false, apps: [], permissions: ['usuarios_ver', 'usuarios_emails'] }, 'usuarios_emails')).toBe(false);
   });
 });

@@ -194,6 +194,7 @@ Os roteiros cobrem: login, abertura de OS pelo assistente, upload de foto, compr
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
    - `SUPABASE_SECRET_KEY` (**somente servidor**, nunca com prefixo `NEXT_PUBLIC_`)
    - `NEXT_PUBLIC_SITE_URL` = `https://seu-dominio.com.br`
+   - `RESEND_API_KEY` (opcional, **somente servidor**): e-mails mandados pela área admin (veja "Área admin")
 3. Deploy. Configure o domínio próprio.
 
 ## Segurança: como o isolamento funciona
@@ -264,7 +265,16 @@ A área admin é uma **central**: a tela inicial (`/admin`) mostra as aplicaçõ
 - estender o Pro grátis (teste);
 - suspender e reativar uma assistência;
 - conferir a assinatura no Mercado Pago;
-- baixar a lista em CSV (abre no Excel).
+- baixar a lista em CSV (abre no Excel);
+- em **Usuários**, mandar e-mail para quem parou no cadastro (veja abaixo).
+
+**E-mails para quem parou no cadastro** (Admin → TecnoFix → Usuários). Cada pessoa mostra o botão que cabe para ela:
+- **Reenviar confirmação:** criou a conta e não confirmou o e-mail;
+- **Lembrar de cadastrar a assistência:** confirmou, mas não criou a assistência.
+
+Os dois e-mails têm um botão que entra direto na conta (link de uso único do Supabase Auth, que também confirma o e-mail) e leva para o cadastro da assistência, em qualquer navegador. O servidor confere a situação da pessoa antes de enviar, o mesmo e-mail só sai de novo depois de 1 hora e cada envio fica no histórico (`admin_audit_log`), com o último envio aparecendo na lista. O link vale pelo tempo de "Email OTP Expiration" do Supabase (Authentication → Providers → Email; o padrão é 1 hora).
+
+Para ligar: no Resend (o mesmo serviço do SMTP do Supabase), crie uma chave em API Keys com permissão "Sending access" para o domínio `tecnofix.pro` e coloque em `RESEND_API_KEY` na Vercel (Production), depois faça um novo deploy. Opcionais: `EMAIL_FROM` (padrão `TecnoFix <nao-responda@tecnofix.pro>`) e `EMAIL_REPLY_TO`. Quem não é master precisa da permissão "Enviar e-mails para quem parou no cadastro".
 
 **Login separado das contas das assistências.** Usuário e senha ficam em variáveis da Vercel, com a senha criptografada (scrypt).
 
@@ -293,7 +303,7 @@ Acessos tem uma aba para os acessos ao painel admin e uma aba de contas de teste
 Funcionalidades do TecnoFix que podem ser liberadas (lista em `src/features/admin/apps.js`):
 - **Visão geral:** ver a visão geral; ver valores e pagamentos (receita, recebido no mês, valor dos planos, cobranças).
 - **Assistências:** ver assistências, donos e equipe; baixar a planilha; estender o teste; suspender e reativar; conferir no Mercado Pago. As ações exigem "ver assistências" (marcado sozinho).
-- **Usuários:** ver pessoas cadastradas.
+- **Usuários:** ver pessoas cadastradas; enviar e-mails para quem parou no cadastro.
 - **Site:** ver acessos do site.
 
 Quem recebe um acesso troca a senha no primeiro login (e depois de uma redefinição) e pode trocá-la em **Minha senha**. O menu mostra só o que a conta pode abrir; páginas, ações, a planilha e os valores em R$ também são conferidos no servidor. Desativar, excluir ou redefinir a senha derruba a sessão aberta na hora.

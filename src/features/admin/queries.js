@@ -2,6 +2,7 @@ import 'server-only';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isTestUser } from './format';
 import { selectAccounts } from './session';
+import { USER_EMAIL_ACTIONS } from './user-emails';
 
 // Leituras da área admin. Sempre com a chave secreta (ignora o RLS), por isso só
 // são chamadas depois de requireAdmin(). As funções admin_* vêm da migration 0015.
@@ -53,6 +54,25 @@ export async function approvedPaymentsSince(isoDate) {
   // Sem a migration 0019 a coluna is_test não existe: nenhuma conta é de teste.
   const testIds = new Set(tests.error ? [] : (tests.data || []).map((t) => t.id));
   return (data || []).filter((p) => !testIds.has(p.assistance_id));
+}
+
+/**
+ * Último e-mail mandado pela área admin para cada pessoa (confirmação ou lembrete), nos últimos
+ * 30 dias: { [user_id]: { at, by, action } }.
+ */
+export async function recentUserEmails(days = 30) {
+  const since = new Date(Date.now() - days * 86400000).toISOString();
+  const { data, error } = await createAdminClient()
+    .from('admin_audit_log').select('action, admin_username, details, created_at')
+    .in('action', USER_EMAIL_ACTIONS).gte('created_at', since)
+    .order('created_at', { ascending: false }).limit(2000);
+  check(error, 'admin_audit_log');
+  const out = {};
+  for (const r of data || []) {
+    const id = r.details?.user_id;
+    if (id && !out[id]) out[id] = { at: r.created_at, by: r.admin_username, action: r.action };
+  }
+  return out;
 }
 
 export class SiteSetupError extends Error {}

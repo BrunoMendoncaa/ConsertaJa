@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Search, Users } from 'lucide-react';
+import { Mail, Search, Users } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, THead, TH, TBody, TD } from '@/components/ui/table';
 import { EmptyState } from '@/components/ui/empty-state';
-import { listUsers, AdminSetupError } from '@/features/admin/queries';
+import { Alert } from '@/components/ui/alert';
+import { ActionForm, SubmitButton } from '@/components/ui/action-form';
+import { listUsers, recentUserEmails, AdminSetupError } from '@/features/admin/queries';
+import { sendUserEmail } from '@/features/admin/user-email-actions';
+import { USER_EMAILS, userEmailKind } from '@/features/admin/user-emails';
+import { can } from '@/features/admin/permissions';
+import { emailConfigured } from '@/lib/email';
+import { logError } from '@/lib/logger';
 import { SetupNotice } from '@/features/admin/components/bits';
 import { ROLES } from '@/lib/constants';
 import { formatDate, formatDateTime } from '@/lib/dates';
@@ -23,10 +30,31 @@ const FILTERS = [
   ['nao-confirmados', 'E-mail não confirmado'],
 ];
 
+const SENT_LABEL = Object.fromEntries(Object.values(USER_EMAILS).map((e) => [e.action, e.sentLabel]));
+
+/** Botão do e-mail que cabe para a pessoa (confirmação ou lembrete da assistência) e o último envio. */
+function EmailAction({ user, last }) {
+  const kind = userEmailKind(user);
+  if (!kind) return null;
+  const info = USER_EMAILS[kind];
+  const lastText = last ? `Último e-mail (${SENT_LABEL[last.action] || 'e-mail'}): ${formatDateTime(last.at)} · ${last.by}` : null;
+  return (
+    <ActionForm action={sendUserEmail} className="mt-2" confirm={`${info.confirm(user.email)}${lastText ? `\n\n${lastText}` : ''}`}>
+      <input type="hidden" name="user_id" value={user.id} />
+      <input type="hidden" name="kind" value={kind} />
+      <SubmitButton size="sm" variant="outline" pendingText="Enviando..." data-email={kind}>
+        <Mail className="size-4" aria-hidden="true" /> {info.button}
+      </SubmitButton>
+      {lastText && <p className="mt-1 text-xs text-slate-500">{lastText}</p>}
+    </ActionForm>
+  );
+}
+
 const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 export default async function AdminUsersPage({ searchParams }) {
-  await requireAdmin('usuarios_ver');
+  const session = await requireAdmin('usuarios_ver');
+  const canEmail = can(session, 'usuarios_emails');
   const sp = await searchParams;
   const filter = FILTERS.some(([k]) => k === sp?.filtro) ? sp.filtro : 'todos';
   const q = typeof sp?.q === 'string' ? sp.q.slice(0, 80) : '';
@@ -38,17 +66,27 @@ export default async function AdminUsersPage({ searchParams }) {
     if (err instanceof AdminSetupError) return <><PageHeader title="Usuários" /><SetupNotice message={err.message} /></>;
     throw err;
   }
+  // Último e-mail mandado para cada pessoa. Se a leitura falhar, a lista aparece do mesmo jeito.
+  const sent = canEmail ? await recentUserEmails().catch((err) => { logError('admin.users.recentEmails', err); return {}; }) : {};
   const test = {
     todos: () => true,
     'sem-assistencia': (u) => !u.memberships?.length,
     'nao-confirmados': (u) => !u.email_confirmed_at,
   };
   const counts = Object.fromEntries(FILTERS.map(([k]) => [k, all.filter(test[k]).length]));
+  const pendingEmail = canEmail && all.some((u) => userEmailKind(u));
   const rows = all.filter(test[filter]).filter((u) => !q || norm(`${u.full_name} ${u.email} ${u.phone}`).includes(norm(q)));
 
   return (
     <>
       <PageHeader title="Usuários" description="Todas as pessoas com conta no TecnoFix, inclusive quem ainda não criou assistência. Logins só de contas de teste ficam em Acessos → TecnoFix · contas de teste." />
+
+      {pendingEmail && !emailConfigured() && (
+        <Alert variant="warning" title="Envio de e-mails desligado" className="mb-4">
+          Para os botões de e-mail funcionarem, crie a variável <code className="font-mono text-xs">RESEND_API_KEY</code> na Vercel
+          (Settings → Environment Variables) com uma chave do Resend e faça um novo deploy.
+        </Alert>
+      )}
 
       <div className="mb-4 flex flex-wrap gap-2">
         {FILTERS.map(([k, label]) => (
@@ -81,6 +119,7 @@ export default async function AdminUsersPage({ searchParams }) {
                     {!u.memberships.length && <Badge tone="amber">Sem assistência</Badge>}
                     {!u.email_confirmed_at && <Badge tone="orange">E-mail não confirmado</Badge>}
                   </div>
+                  {canEmail && <EmailAction user={u} last={sent[u.id]} />}
                   <p className="mt-1 text-xs text-slate-500">desde {formatDate(u.created_at)} · último acesso {u.last_sign_in_at ? formatDateTime(u.last_sign_in_at) : 'nunca'}</p>
                 </li>
               ))}
@@ -107,6 +146,7 @@ export default async function AdminUsersPage({ searchParams }) {
                           ))}
                           {!u.memberships.length && <Badge tone="amber">Sem assistência</Badge>}
                         </div>
+                        {canEmail && <EmailAction user={u} last={sent[u.id]} />}
                       </TD>
                       <TD>
                         <p>{formatDate(u.created_at)}</p>

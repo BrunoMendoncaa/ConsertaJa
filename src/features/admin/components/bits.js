@@ -67,6 +67,8 @@ export const ACTION_LABELS = {
   test_unmark: 'Voltou a contar como assistência',
   test_password: 'Trocou a senha da conta de teste',
   test_delete: 'Excluiu conta de teste',
+  user_confirm_email: 'Reenviou a confirmação de e-mail',
+  user_onboarding_email: 'Lembrou de cadastrar a assistência',
 };
 
 const PLAN_NAMES = { pro: 'Pro', free: 'Grátis' };
@@ -91,6 +93,7 @@ export function actionDetail(row) {
   if (row.action === 'test_create') return [d.name, d.email, PLAN_NAMES[d.plan]].filter(Boolean).join(' · ');
   if (row.action === 'test_plan') return `${PLAN_NAMES[d.from] || d.from || '—'} → ${PLAN_NAMES[d.to] || d.to}`;
   if (row.action === 'test_mark') return PLAN_NAMES[d.plan] || '';
+  if (['user_confirm_email', 'user_onboarding_email'].includes(row.action)) return [d.name, d.email].filter(Boolean).join(' · ');
   if (row.action === 'test_delete') return [d.name, d.logins?.length ? `logins: ${d.logins.join(', ')}` : ''].filter(Boolean).join(' · ');
   return '';
 }

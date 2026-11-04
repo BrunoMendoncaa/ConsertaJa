@@ -43,6 +43,7 @@ export const APPS = [
         title: 'Usuários',
         items: [
           { key: 'usuarios_ver', label: 'Ver pessoas cadastradas', hint: 'Nome, e-mail, telefone e assistências de cada pessoa.' },
+          { key: 'usuarios_emails', label: 'Enviar e-mails para quem parou no cadastro', hint: 'Reenviar a confirmação de e-mail e lembrar de cadastrar a assistência.', requires: 'usuarios_ver' },
         ],
       },
       {
