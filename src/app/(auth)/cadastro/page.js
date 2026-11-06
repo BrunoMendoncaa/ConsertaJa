@@ -3,6 +3,9 @@ import { ActionForm, SubmitButton } from '@/components/ui/action-form';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { signUp } from '@/features/auth/actions';
+import { googleEnabled, browserInfo } from '@/features/auth/google';
+import { GoogleButton, OrDivider } from '@/features/auth/components/google-button';
+import { GoogleError } from '@/features/auth/components/google-error';
 
 // Também abre em /anuncio/cadastro (botão do anúncio, ver next.config.mjs): o endereço oficial é /cadastro.
 export const metadata = { title: 'Criar conta', alternates: { canonical: '/cadastro' } };
@@ -10,11 +13,19 @@ export const metadata = { title: 'Criar conta', alternates: { canonical: '/cadas
 export default async function SignUpPage({ searchParams }) {
   const sp = await searchParams;
   const next = typeof sp?.proximo === 'string' ? sp.proximo : '';
+  const [google, browser] = await Promise.all([googleEnabled(), browserInfo()]);
   return (
     <>
       <h1 className="text-xl font-semibold text-slate-900">Criar conta grátis</h1>
       <p className="mt-1 text-sm text-slate-500">Sistema de OS para assistência técnica. Grátis, sem prazo e sem cartão (os 14 primeiros dias têm o Pro completo). Depois você cadastra sua assistência ou aceita um convite da equipe.</p>
-      <ActionForm action={signUp} className="mt-6 space-y-4">
+      <GoogleError code={sp?.erro} />
+      {google && (
+        <>
+          <div className="mt-6"><GoogleButton mode="cadastro" next={next} {...browser} /></div>
+          <OrDivider />
+        </>
+      )}
+      <ActionForm action={signUp} className={google ? 'space-y-4' : 'mt-6 space-y-4'}>
         <input type="hidden" name="next" value={next} />
         <Field label="Seu nome" name="full_name">
           <Input id="full_name" name="full_name" autoComplete="name" required />

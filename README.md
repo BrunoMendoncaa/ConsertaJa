@@ -236,6 +236,23 @@ Link fixo no rodapé do menu do painel (`/painel/ajuda`). Cada pessoa vê só os
 - **Testes:** `tests/help.test.js` confere arquivos, permissões (o botão "Abrir…" de um guia só aparece para quem consegue abrir a tela) e a busca.
 - Quando uma tela mudar de nome de botão ou de regra, ajuste o guia correspondente.
 
+## Entrar com o Google
+
+As telas de criar conta e de entrar têm o botão **"Continuar com o Google"** (Supabase Auth, fluxo PKCE: `signInWithGoogle` em `src/features/auth/actions.js` e a volta em `/auth/confirm`). Conta nova cai no cadastro da assistência; quem já tem conta cai no painel; quem veio de um convite volta para o convite. Se o e-mail do Google já tem conta com senha, o Supabase junta as duas (mesma conta). O botão só aparece quando o provedor Google está ligado no Supabase (lido de `/auth/v1/settings`, a cada 5 minutos).
+
+**Navegador do Instagram/Facebook:** o Google bloqueia o login dentro desses apps ("Erro 403: disallowed_useragent"). Nesses navegadores o botão não leva ao Google: explica como abrir no navegador (no Android, com o botão "Abrir no Chrome", que mantém o link do anúncio). Lista de apps em `src/lib/in-app-browser.js`.
+
+**Para ligar (uma vez):**
+1. **Google Cloud Console** (console.cloud.google.com), projeto TecnoFix → **Google Auth Platform**:
+   - *Branding*: nome do app "TecnoFix", e-mail de suporte, página inicial `https://tecnofix.pro`.
+   - *Audience*: tipo **External** e clique em **Publish app** (em "Testing" só os e-mails de teste conseguem entrar).
+   - *Data Access*: escopos `openid`, `.../auth/userinfo.email` e `.../auth/userinfo.profile` (não pedem verificação).
+   - *Clients* → **Create client** → **Web application**. *Authorized JavaScript origins*: `https://tecnofix.pro`. *Authorized redirect URIs*: o "Callback URL" que aparece no Supabase (passo 2), no formato `https://<ref-do-projeto>.supabase.co/auth/v1/callback`. Guarde o Client ID e o Client secret.
+2. **Supabase** → Authentication → Sign In / Providers → **Google**: ligue, cole o Client ID e o Client secret e salve. Confira em Authentication → URL Configuration que `https://tecnofix.pro/**` está em Redirect URLs.
+3. Pronto: em até 5 minutos o botão aparece em /cadastro e /entrar.
+
+Sem mais nada, a tela do Google mostra "continuar em `<ref>.supabase.co`". Para aparecer "TecnoFix": verificação da marca no Google Auth Platform (grátis, alguns dias; pede Política de Privacidade no site e o domínio confirmado no Search Console) ou domínio próprio no Supabase (pago).
+
 ## Cadastro da assistência (primeiro acesso)
 
 - Depois de **Criar assistência**, a próxima tela é **Configurações** (`/painel/configuracoes?inicio=1`), com boas-vindas.

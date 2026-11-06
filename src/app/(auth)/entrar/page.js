@@ -4,12 +4,16 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
 import { signIn } from '@/features/auth/actions';
+import { googleEnabled, browserInfo } from '@/features/auth/google';
+import { GoogleButton, OrDivider } from '@/features/auth/components/google-button';
+import { GoogleError } from '@/features/auth/components/google-error';
 
 export const metadata = { title: 'Entrar' };
 
 export default async function LoginPage({ searchParams }) {
   const sp = await searchParams;
   const next = typeof sp?.proximo === 'string' ? sp.proximo : '';
+  const [google, browser] = await Promise.all([googleEnabled(), browserInfo()]);
   return (
     <>
       <h1 className="text-xl font-semibold text-slate-900">Entrar</h1>
@@ -17,7 +21,14 @@ export default async function LoginPage({ searchParams }) {
       {sp?.erro === 'link' && (
         <Alert variant="warning" className="mt-4">O link expirou ou já foi usado. Entre com sua senha ou peça um novo.</Alert>
       )}
-      <ActionForm action={signIn} className="mt-6 space-y-4">
+      <GoogleError code={sp?.erro} />
+      {google && (
+        <>
+          <div className="mt-6"><GoogleButton mode="entrar" next={next} {...browser} /></div>
+          <OrDivider />
+        </>
+      )}
+      <ActionForm action={signIn} className={google ? 'space-y-4' : 'mt-6 space-y-4'}>
         <input type="hidden" name="next" value={next} />
         <Field label="E-mail" name="email">
           <Input id="email" name="email" type="email" autoComplete="email" required />

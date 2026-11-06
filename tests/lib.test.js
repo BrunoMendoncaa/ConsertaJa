@@ -9,6 +9,7 @@ import { allowedCategories } from '@/features/finance/rules';
 import { warrantyDocument, warrantyTerms, DEFAULT_WARRANTY_TERMS } from '@/features/service-orders/warranty';
 import { verifyWebhookSignature, parseWebhook, mapPreapprovalStatus, mapAuthorizedPayments, describeCheckoutError } from '@/features/billing/mp-utils';
 import crypto from 'node:crypto';
+import { isInAppBrowser, inAppName, isAndroid, chromeIntentUrl } from '@/lib/in-app-browser';
 
 describe('dinheiro', () => {
   it('converte formatos brasileiros para decimal com 2 casas', () => {
@@ -242,5 +243,39 @@ describe('plano Grátis: uso do mês', () => {
     expect(freeUsage({ access: 'free', os_month: 30, os_limit: 30 })).toMatchObject({ near: false, reached: true, left: 0 });
     expect(freeUsage({ access: 'free', os_month: 31 })).toMatchObject({ limit: FREE_OS_LIMIT, left: 0, reached: true });
     expect(PLAN_COMPARISON[0]).toEqual(['Ordens de serviço', `até ${FREE_OS_LIMIT} por mês`, 'sem limite']);
+  });
+});
+
+describe('navegador embutido de apps (login com Google)', () => {
+  const IG_IOS = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 330.0.0.40.92 (iPhone14,5; iOS 17_5; pt_BR; pt-BR; scale=3.00; 1170x2532; 595361458)';
+  const FB_ANDROID = 'Mozilla/5.0 (Linux; Android 13; SM-A135M Build/TP1A.220624.014; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/120.0.6099.193 Mobile Safari/537.36 [FB_IAB/FB4A;FBAV/447.0.0.40.108;]';
+  const FB_IOS = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 [FBAN/FBIOS;FBDV/iPhone13,2;FBMD/iPhone;FBSN/iOS;FBSV/17.4;FBSS/3;FBID/phone;FBLC/pt_BR;FBOP/5]';
+  const CHROME_ANDROID = 'Mozilla/5.0 (Linux; Android 13; SM-A135M) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Mobile Safari/537.36';
+  const SAFARI_IOS = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
+
+  it('reconhece Instagram e Facebook (iPhone e Android)', () => {
+    expect(isInAppBrowser(IG_IOS)).toBe(true);
+    expect(isInAppBrowser(FB_ANDROID)).toBe(true);
+    expect(isInAppBrowser(FB_IOS)).toBe(true);
+    expect(inAppName(IG_IOS)).toBe('Instagram');
+    expect(inAppName(FB_ANDROID)).toBe('Facebook');
+    expect(isAndroid(FB_ANDROID)).toBe(true);
+    expect(isAndroid(IG_IOS)).toBe(false);
+  });
+
+  it('Chrome, Safari e vazio não são navegador de app', () => {
+    expect(isInAppBrowser(CHROME_ANDROID)).toBe(false);
+    expect(isInAppBrowser(SAFARI_IOS)).toBe(false);
+    expect(isInAppBrowser('')).toBe(false);
+    expect(isInAppBrowser(null)).toBe(false);
+  });
+
+  it('link do Chrome no Android mantém o caminho e os parâmetros do anúncio', () => {
+    const href = 'https://tecnofix.pro/anuncio/cadastro?utm_source=ig&utm_campaign=tecnofix-gratis';
+    const intent = chromeIntentUrl(href);
+    expect(intent.startsWith('intent://tecnofix.pro/anuncio/cadastro?utm_source=ig&utm_campaign=tecnofix-gratis#Intent;')).toBe(true);
+    expect(intent).toContain('scheme=https;');
+    expect(intent).toContain('package=com.android.chrome;');
+    expect(intent).toContain(`S.browser_fallback_url=${encodeURIComponent(href)};end`);
   });
 });

@@ -45,6 +45,10 @@ export const CTA_LABELS = {
   'hero-passo-3': 'Topo: tocou no passo 3 do vídeo',
   'cadastro-criar-conta': 'Cadastro: tocou em Criar conta',
   'cadastro-como-funciona': 'Cadastro: Ver como funciona',
+  'cadastro-google': 'Cadastro: Continuar com o Google',
+  'entrar-google': 'Entrar: Continuar com o Google',
+  'google-navegador-app': 'Google no navegador do Instagram/Facebook (pediu para abrir fora)',
+  'google-abrir-chrome': 'Google: tocou em Abrir no Chrome',
 };
 
 // Botões que levam ao cadastro (contam como "clicou em teste grátis").

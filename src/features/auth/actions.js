@@ -124,3 +124,30 @@ export async function updatePassword(_prev, formData) {
   }
   redirect('/painel');
 }
+
+/**
+ * Entrar ou criar conta com o Google (Supabase Auth, fluxo PKCE).
+ * O Supabase guarda o código de verificação num cookie e devolve o endereço do Google;
+ * na volta, /auth/confirm troca o código pela sessão e segue para `next`.
+ * Conta nova vai para o cadastro da assistência; quem já tem conta cai no painel.
+ */
+export async function signInWithGoogle(formData) {
+  const mode = formData.get('mode') === 'cadastro' ? 'cadastro' : 'entrar';
+  const next = safeNext(String(formData.get('next') || ''), mode === 'cadastro' ? '/onboarding' : '/painel');
+  const back = `/${mode}?erro=google${next !== '/onboarding' && next !== '/painel' ? `&proximo=${encodeURIComponent(next)}` : ''}`;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${SITE_URL}/auth/confirm?via=google&modo=${mode}&next=${encodeURIComponent(next)}`,
+      // Sempre mostra a lista de contas (quem tem mais de uma escolhe a da loja).
+      queryParams: { prompt: 'select_account' },
+    },
+  });
+  if (error || !data?.url) {
+    logError('auth.google', error || new Error('sem url'));
+    redirect(back);
+  }
+  redirect(data.url);
+}
