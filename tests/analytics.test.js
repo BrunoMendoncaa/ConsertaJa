@@ -77,6 +77,16 @@ describe('acessos do site: evento recebido', () => {
     expect(originOf({ utm_source: 'an' })).toBe('Audience Network (anúncio)');
   });
 
+  it('botão do anúncio: /anuncio/cadastro marca o anúncio, e os parâmetros do Meta valem por cima', () => {
+    const a = buildEvent({ headers: hdrs(), body: { event: 'page_view', path: '/anuncio/cadastro' }, salt: 's', now });
+    expect(a.row).toMatchObject({ p_path: '/anuncio/cadastro', p_utm_source: 'facebook', p_utm_medium: 'anuncio', p_utm_campaign: 'anuncio-cadastro' });
+    const m = buildEvent({ headers: hdrs(), body: { event: 'page_view', path: '/anuncio/cadastro', utm_source: 'ig', utm_campaign: 'tecnofix-gratis' }, salt: 's', now });
+    expect(m.row).toMatchObject({ p_utm_source: 'ig', p_utm_medium: 'anuncio', p_utm_campaign: 'tecnofix-gratis' });
+    expect(originOf({ utm_source: 'ig', utm_campaign: 'tecnofix-gratis' })).toBe('Instagram (anúncio) · tecnofix-gratis');
+    const c = buildEvent({ headers: hdrs(), body: { event: 'cta_click', path: '/anuncio/cadastro', label: 'cadastro-criar-conta' }, salt: 's', now });
+    expect(c.ok).toBe(true);
+  });
+
   it('o código do visitante muda de um dia para o outro', () => {
     const a = visitorCode({ ip: '1.1.1.1', ua: ANDROID, salt: 's', now });
     expect(visitorCode({ ip: '1.1.1.1', ua: ANDROID, salt: 's', now: new Date(now.getTime() + 3600000) })).toBe(a);
@@ -131,6 +141,24 @@ describe('acessos do site: resumo da tela Site', () => {
     expect(r.cities.map((c) => c.label).sort()).toEqual(['Bauru · SP', 'Recife · PE']);
     expect(r.devices.map((d) => d.label).sort()).toEqual(['Celular', 'Computador']);
     expect(r.recent[0]).toMatchObject({ place: 'Bauru/SP', clicked: true, pages: ['Página inicial (link do WhatsApp)', 'Cadastro'] });
+  });
+
+  it('quem entra pelo botão do anúncio já conta como "abriu o cadastro"', () => {
+    const r = summarize({
+      range,
+      events: [
+        ev({ session: 'b1', created_at: at(5), path: '/anuncio/cadastro', utm_source: 'fb', utm_campaign: 'tecnofix-gratis' }),
+        ev({ session: 'b1', created_at: at(4.99), event: 'cta_click', path: '/anuncio/cadastro', label: 'cadastro-criar-conta', utm_source: 'fb' }),
+        ev({ session: 'b2', visitor: 'v2', created_at: at(6), path: '/anuncio/cadastro', utm_source: 'ig', utm_campaign: 'tecnofix-gratis' }),
+        ev({ session: 'b3', visitor: 'v3', created_at: at(7), path: '/anuncio', utm_source: 'facebook', utm_campaign: 'anuncio' }),
+      ],
+    });
+    expect(r.totals).toMatchObject({ visits: 3, signupVisits: 2 });
+    expect(r.origins.find((o) => o.label === 'Facebook (anúncio) · tecnofix-gratis')).toMatchObject({ value: 1, signup: 1 });
+    expect(r.origins.find((o) => o.label === 'Instagram (anúncio) · tecnofix-gratis')).toMatchObject({ value: 1, signup: 1 });
+    expect(r.origins.find((o) => o.label === 'Facebook · anuncio')).toMatchObject({ value: 1, signup: 0 });
+    expect(r.pages.find((p) => p.path === '/anuncio/cadastro')).toMatchObject({ label: 'Cadastro (link do anúncio)', value: 2 });
+    expect(r.ctas.find((c) => c.label === 'Cadastro: tocou em Criar conta')).toMatchObject({ value: 1 });
   });
 
   it('conta quem chamou no WhatsApp e quem saiu sem clicar', () => {

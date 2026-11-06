@@ -1,5 +1,8 @@
 // Páginas públicas que entram na contagem de acessos do site.
-export const TRACKED_PATHS = ['/', '/14dias', '/gratis', '/anuncio', '/grupos', '/cadastro', '/entrar'];
+export const TRACKED_PATHS = ['/', '/14dias', '/gratis', '/anuncio', '/anuncio/cadastro', '/grupos', '/cadastro', '/entrar'];
+
+// Páginas de cadastro (contam como "abriu o cadastro" no funil). /anuncio/cadastro é o botão do anúncio.
+export const SIGNUP_PATHS = ['/cadastro', '/anuncio/cadastro'];
 
 export const PAGE_LABELS = {
   '/': 'Página inicial',
@@ -8,15 +11,18 @@ export const PAGE_LABELS = {
   '/anuncio': 'Página inicial (link do anúncio)',
   '/grupos': 'Página inicial (link dos grupos)',
   '/cadastro': 'Cadastro',
+  '/anuncio/cadastro': 'Cadastro (link do anúncio)',
   '/entrar': 'Entrar',
 };
 
-// Links curtos de campanha: mostram a página inicial e marcam a origem da visita.
+// Links curtos de campanha: mostram a página inicial (ou o cadastro) e marcam a origem da visita.
 // Ex.: a mensagem do WhatsApp usa https://tecnofix.pro/14dias. Cada um precisa de um rewrite no next.config.mjs.
+// Se o link vier com utm_* (ex.: parâmetros do Gerenciador de Anúncios), valem os do link.
 export const CAMPAIGN_PATHS = {
   '/14dias': { utm_source: 'whatsapp', utm_medium: 'mensagem', utm_campaign: 'convite-14-dias' },
   '/gratis': { utm_source: 'whatsapp', utm_medium: 'mensagem', utm_campaign: 'gratis' },
   '/anuncio': { utm_source: 'facebook', utm_medium: 'anuncio', utm_campaign: 'anuncio' },
+  '/anuncio/cadastro': { utm_source: 'facebook', utm_medium: 'anuncio', utm_campaign: 'anuncio-cadastro' },
   '/grupos': { utm_source: 'facebook', utm_medium: 'grupo', utm_campaign: 'grupos' },
 };
 
@@ -37,6 +43,8 @@ export const CTA_LABELS = {
   'hero-passo-1': 'Topo: tocou no passo 1 do vídeo',
   'hero-passo-2': 'Topo: tocou no passo 2 do vídeo',
   'hero-passo-3': 'Topo: tocou no passo 3 do vídeo',
+  'cadastro-criar-conta': 'Cadastro: tocou em Criar conta',
+  'cadastro-como-funciona': 'Cadastro: Ver como funciona',
 };
 
 // Botões que levam ao cadastro (contam como "clicou em teste grátis").

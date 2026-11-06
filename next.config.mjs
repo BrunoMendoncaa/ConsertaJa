@@ -27,11 +27,15 @@ const nextConfig = {
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },
-  // Links curtos de campanha: mostram a página inicial e marcam a origem da visita
+  // Links curtos de campanha: mostram a página inicial (ou o cadastro) e marcam a origem da visita
   // (ver src/features/analytics/constants.js). Ex.: https://tecnofix.pro/14dias
   async rewrites() {
     // /grupos é uma página própria (src/app/(site)/grupos), com o cartão de link dos posts em grupos.
-    return ['/14dias', '/gratis', '/anuncio'].map((source) => ({ source, destination: '/' }));
+    // /anuncio/cadastro é o botão do anúncio: abre direto o cadastro, marcado como anúncio.
+    return [
+      ...['/14dias', '/gratis', '/anuncio'].map((source) => ({ source, destination: '/' })),
+      { source: '/anuncio/cadastro', destination: '/cadastro' },
+    ];
   },
   async redirects() {
     // Área admin virou central de aplicações: as telas do TecnoFix foram para /admin/tecnofix.

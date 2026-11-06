@@ -1,5 +1,5 @@
 import { originOf } from './sources';
-import { PAGE_LABELS, CTA_LABELS, SIGNUP_CTAS, WHATSAPP_CTAS } from './constants';
+import { PAGE_LABELS, CTA_LABELS, SIGNUP_CTAS, WHATSAPP_CTAS, SIGNUP_PATHS } from './constants';
 
 // Números da tela "Site" (área admin) a partir dos eventos gravados em site_events.
 // Funções puras: recebem as linhas e devolvem o resumo (testado em tests/analytics.test.js).
@@ -72,7 +72,7 @@ export function summarize({ events = [], users = [], assistances = [], payments 
   const foreignKeys = new Set([...sessions.values()].filter(isForeign).map((s) => s.key));
   const evsAll = evs;
   evs = evs.filter((e) => !foreignKeys.has(e.session || `v:${e.visitor}`));
-  const reachedSignup = (s) => s.pages.includes('/cadastro');
+  const reachedSignup = (s) => s.pages.some((p) => SIGNUP_PATHS.includes(p));
 
   const days = daysOf(range);
   const perDayMap = new Map(days.map((d) => [d, { visits: 0, pageViews: 0 }]));
